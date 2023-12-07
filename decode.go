@@ -16,7 +16,7 @@ func DecodeNil(v any) (bool, error) {
 }
 
 // DecodeValue decodes a string value into v by calling
-// DecodeString, DecodeBytes, DecodeBool, and DecodeNumber,
+// DecodeString, DecodeBytes, DecodeBoolString, and DecodeNumber,
 // returning after the first attempted decode.
 // Returns false, nil if unable to decode into v.
 func DecodeValue(v any, val string) (bool, error) {
@@ -26,10 +26,10 @@ func DecodeValue(v any, val string) (bool, error) {
 	if ok, err := DecodeBytes(v, []byte(val)); ok {
 		return ok, err
 	}
-	if ok, err := DecodeNumber(v, val); ok {
+	if ok, err := DecodeBoolString(v, val); ok {
 		return ok, err
 	}
-	if ok, err := DecodeBoolString(v, val); ok {
+	if ok, err := DecodeNumber(v, val); ok {
 		return ok, err
 	}
 	return false, nil

@@ -9,8 +9,8 @@ import (
 )
 
 func TestDecoder(t *testing.T) {
-	x := `<foo age="1" name="hello" />`
-	want := Foo{1, "hello"}
+	x := `<foo age="1" name="hello" here="true" />`
+	want := Foo{1, "hello", true}
 	var v Foo
 	dec := NewDecoder(strings.NewReader(x))
 	err := dec.Decode(&v)
@@ -25,6 +25,7 @@ func TestDecoder(t *testing.T) {
 type Foo struct {
 	Age  int
 	Name string
+	Here bool
 }
 
 func (f *Foo) DecodeElement(dec codec.Decoder, i int, name string) error {
@@ -39,6 +40,8 @@ func (f *Foo) DecodeField(dec codec.Decoder, i int, name string) error {
 		return dec.Decode(&f.Age)
 	case "name":
 		return dec.Decode(&f.Name)
+	case "here":
+		return dec.Decode(&f.Here)
 	}
 	return nil
 }
