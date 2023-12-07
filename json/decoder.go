@@ -10,7 +10,7 @@ import (
 
 type Decoder struct {
 	dec *json.Decoder
-	r   codec.Resolvers
+	r   []codec.Resolver
 }
 
 func NewDecoder(r io.Reader, resolvers ...codec.Resolver) *Decoder {
@@ -18,12 +18,12 @@ func NewDecoder(r io.Reader, resolvers ...codec.Resolver) *Decoder {
 	dec.UseNumber()
 	return &Decoder{
 		dec: dec,
-		r:   codec.Resolvers(resolvers),
+		r:   resolvers,
 	}
 }
 
 func (dec *Decoder) Decode(v any) error {
-	if c := dec.r.ResolveCodec(v); c != nil {
+	if c := codec.Resolve(v, dec.r...); c != nil {
 		v = c
 	}
 
@@ -41,16 +41,31 @@ func (dec *Decoder) decodeToken(v any) error {
 		return err
 	}
 	if tok == nil {
-		return codec.DecodeNil(v)
+		_, err := codec.DecodeNil(v)
+		return err
 	}
 
 	switch tok := tok.(type) {
 	case bool:
-		return codec.DecodeBool(v, tok)
+		_, err := codec.DecodeBool(v, tok)
+		return err
 	case json.Number:
-		return codec.DecodeNumber(v, string(tok))
+		if ok, err := codec.DecodeNumber(v, string(tok)); ok {
+			return err
+		}
+		if ok, err := codec.DecodeString(v, string(tok)); ok {
+			return err
+		}
+		if ok, err := codec.DecodeBytes(v, []byte(tok)); ok {
+			return err
+		}
 	case string:
-		return codec.DecodeString(v, tok)
+		if ok, err := codec.DecodeString(v, string(tok)); ok {
+			return err
+		}
+		if ok, err := codec.DecodeBytes(v, []byte(tok)); ok {
+			return err
+		}
 	case json.Delim:
 		switch tok {
 		case '{':
@@ -67,26 +82,38 @@ func (dec *Decoder) decodeToken(v any) error {
 
 // decodeObject decodes a JSON object into v.
 // It expects that the initial { token has already been decoded.
-func (dec *Decoder) decodeObject(o any) error {
-	d, ok := o.(codec.FieldDecoder)
-	if !ok {
-		d = &ignore{}
+func (dec *Decoder) decodeObject(v any) error {
+	var f decodeFunc
+	switch v := v.(type) {
+	case codec.FieldDecoder:
+		f = v.DecodeField
+	case codec.ElementDecoder:
+		f = v.DecodeElement
 	}
 
-	for dec.dec.More() {
-		name, err := dec.stringToken()
-		if err != nil {
-			return err
-		}
-		fdec := &onceDecoder{Decoder: dec}
-		err = d.DecodeField(fdec, name)
-		if err != nil {
-			return err
-		}
-		if fdec.calls == 0 {
-			err = dec.Decode(nil)
+	if f == nil {
+		for dec.dec.More() {
+			err := dec.Decode(nil)
 			if err != nil {
 				return err
+			}
+		}
+	} else {
+		for i := 0; dec.dec.More(); i++ {
+			name, err := dec.stringToken()
+			if err != nil {
+				return err
+			}
+			once := &onceDecoder{Decoder: dec}
+			err = f(once, i, name)
+			if err != nil {
+				return err
+			}
+			if once.calls == 0 {
+				err = dec.Decode(nil)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -105,21 +132,33 @@ func (dec *Decoder) decodeObject(o any) error {
 // decodeArray decodes a JSON array into v.
 // It expects that the initial [ token has already been decoded.
 func (dec *Decoder) decodeArray(v any) error {
-	d, ok := v.(codec.ElementDecoder)
-	if !ok {
-		d = &ignore{}
+	var f decodeFunc
+	switch v := v.(type) {
+	case codec.ElementDecoder:
+		f = v.DecodeElement
+	case codec.FieldDecoder:
+		f = v.DecodeField
 	}
 
-	for i := 0; dec.dec.More(); i++ {
-		edec := &onceDecoder{Decoder: dec}
-		err := d.DecodeElement(edec, i)
-		if err != nil {
-			return err
-		}
-		if edec.calls == 0 {
-			err = dec.Decode(nil)
+	if f == nil {
+		for dec.dec.More() {
+			err := dec.Decode(nil)
 			if err != nil {
 				return err
+			}
+		}
+	} else {
+		for i := 0; dec.dec.More(); i++ {
+			once := &onceDecoder{Decoder: dec}
+			err := f(once, i, "")
+			if err != nil {
+				return err
+			}
+			if once.calls == 0 {
+				err = dec.Decode(nil)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -147,6 +186,8 @@ func (dec *Decoder) stringToken() (string, error) {
 	return s, nil
 }
 
+type decodeFunc func(codec.Decoder, int, string) error
+
 type onceDecoder struct {
 	*Decoder
 	calls int
@@ -158,18 +199,4 @@ func (dec *onceDecoder) Decode(v any) error {
 		return fmt.Errorf("unexpected call to Decode (%d > 1)", dec.calls)
 	}
 	return dec.Decoder.Decode(v)
-}
-
-type ignore struct{}
-
-func (ig *ignore) DecodeField(dec codec.Decoder, name string) error {
-	return nil
-}
-
-func (ig *ignore) DecodeElement(dec codec.Decoder, i int) error {
-	return nil
-}
-
-func (i *ignore) UnmarshalJSON([]byte) error {
-	return nil
 }

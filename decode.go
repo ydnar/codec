@@ -7,26 +7,70 @@ import (
 )
 
 // DecodeNil calls DecodeNil on v if v implements NilDecoder.
-func DecodeNil(v any) error {
+// Returns true if v implements NilDecoder and a decode was attempted.
+func DecodeNil(v any) (bool, error) {
 	if v, ok := v.(NilDecoder); ok {
-		return v.DecodeNil()
+		return true, v.DecodeNil()
 	}
-	return nil
+	return false, nil
+}
+
+// DecodeValue decodes a string value into v by calling
+// DecodeString, DecodeBytes, DecodeBool, and DecodeNumber,
+// returning after the first attempted decode.
+// Returns false, nil if unable to decode into v.
+func DecodeValue(v any, val string) (bool, error) {
+	if ok, err := DecodeString(v, val); ok {
+		return ok, err
+	}
+	if ok, err := DecodeBytes(v, []byte(val)); ok {
+		return ok, err
+	}
+	if ok, err := DecodeNumber(v, val); ok {
+		return ok, err
+	}
+	if ok, err := DecodeBoolString(v, val); ok {
+		return ok, err
+	}
+	return false, nil
 }
 
 // DecodeBool decodes a boolean value into v.
 // If *v is a pointer to a bool, then a bool will be allocated.
 // If v implements BoolDecoder, then DecodeBool(b) is called.
-func DecodeBool(v any, b bool) error {
+// Returns true if v matches a known type and a decode was attempted.
+func DecodeBool(v any, b bool) (bool, error) {
 	switch v := v.(type) {
 	case *bool:
 		*v = b
+		return true, nil
 	case **bool:
 		*Must(v) = b
+		return true, nil
 	case BoolDecoder:
-		return v.DecodeBool(b)
+		return true, v.DecodeBool(b)
 	}
-	return nil
+	return false, nil
+}
+
+// DecodeBoolString decodes a string representing a boolean value into v.
+//
+// The values "", "0", "false", and "FALSE" are considered false.
+// The values "1", "true", and "TRUE" are considered true.
+// All other values are ignored and (false, nil) will be returned.
+//
+// If *v is a pointer to a bool, then a bool will be allocated.
+// If v implements BoolDecoder, then DecodeBool(b) is called.
+//
+// Returns true if a decode was attempted.
+func DecodeBoolString(v any, s string) (bool, error) {
+	if s == "" || s == "0" || s == "false" || s == "FALSE" {
+		return DecodeBool(v, false)
+	}
+	if s == "1" || s == "true" || s == "TRUE" {
+		return DecodeBool(v, true)
+	}
+	return false, nil
 }
 
 // DecodeNumber decodes a number encoded as a string into v.
@@ -34,8 +78,8 @@ func DecodeBool(v any, b bool) error {
 // int8, uint8, int16, uint16, int32, uint32, int64, uint64, float32, and float64.
 // Pointers to the above types are also supported, and will be allocated if necessary.
 // The interface types IntDecoder, and FloatDecoder are also supported.
-// If unable to decode into a numeric type, it will fall back to DecodeString.
-func DecodeNumber(v any, n string) error {
+// Returns true if v matches a known type and a decode was attempted.
+func DecodeNumber(v any, n string) (bool, error) {
 	switch v := v.(type) {
 	case *int:
 		return decodeSignedValue(v, n)
@@ -116,95 +160,96 @@ func DecodeNumber(v any, n string) error {
 		return decodeFloat(v, n)
 	}
 
-	return DecodeString(v, n)
+	return false, nil
 }
 
-func decodeSignedValue[T Signed](v *T, n string) error {
+func decodeSignedValue[T Signed](v *T, n string) (bool, error) {
 	i, err := strconv.ParseInt(n, 10, int(unsafe.Sizeof(*v)))
 	if err != nil {
-		return err
+		return true, err
 	}
 	*v = T(i)
-	return nil
+	return true, nil
 }
 
-func decodeSigned[T Signed](v IntDecoder[T], n string) error {
+func decodeSigned[T Signed](v IntDecoder[T], n string) (bool, error) {
 	var x T
 	i, err := strconv.ParseInt(n, 10, int(unsafe.Sizeof(x))*8)
 	if err != nil {
-		return err
+		return true, err
 	}
-	return v.DecodeInt(T(i))
+	return true, v.DecodeInt(T(i))
 }
 
-func decodeUnsignedValue[T Unsigned](v *T, n string) error {
+func decodeUnsignedValue[T Unsigned](v *T, n string) (bool, error) {
 	i, err := strconv.ParseUint(n, 10, int(unsafe.Sizeof(*v)))
 	if err != nil {
-		return err
+		return true, err
 	}
 	*v = T(i)
-	return nil
+	return true, nil
 }
 
-func decodeUnsigned[T Unsigned](v IntDecoder[T], n string) error {
+func decodeUnsigned[T Unsigned](v IntDecoder[T], n string) (bool, error) {
 	var x T
 	i, err := strconv.ParseUint(n, 10, int(unsafe.Sizeof(x))*8)
 	if err != nil {
-		return err
+		return true, err
 	}
-	return v.DecodeInt(T(i))
+	return true, v.DecodeInt(T(i))
 }
 
-func decodeFloatValue[T Float](v *T, n string) error {
+func decodeFloatValue[T Float](v *T, n string) (bool, error) {
 	f, err := strconv.ParseFloat(n, int(unsafe.Sizeof(*v)))
 	if err != nil {
-		return err
+		return true, err
 	}
 	*v = T(f)
-	return nil
+	return true, nil
 }
 
-func decodeFloat[T Float](v FloatDecoder[T], n string) error {
+func decodeFloat[T Float](v FloatDecoder[T], n string) (bool, error) {
 	var x T
 	f, err := strconv.ParseFloat(n, int(unsafe.Sizeof(x))*8)
 	if err != nil {
-		return err
+		return true, err
 	}
-	return v.DecodeFloat(T(f))
+	return true, v.DecodeFloat(T(f))
 }
 
 // DecodeString decodes s into v. The following types are supported:
-// string, *string, and StringDecoder. It will fall back to DecodeBytes
-// to attempt to decode into a byte slice or binary decoder.
-func DecodeString(v any, s string) error {
+// string, *string, and StringDecoder.
+// Returns true if v matches a known type and a decode was attempted.
+func DecodeString(v any, s string) (bool, error) {
 	switch v := v.(type) {
 	case *string:
 		*v = s
-		return nil
+		return true, nil
 	case **string:
 		*v = &s
-		return nil
+		return true, nil
 	case StringDecoder:
-		return v.DecodeString(s)
+		return true, v.DecodeString(s)
 	}
-	return DecodeBytes(v, []byte(s))
+	return false, nil
 }
 
 // DecodeBytes decodes data into v. The following types are supported:
 // []byte, BytesDecoder, encoding.BinaryUnmarshaler, and encoding.TextUnmarshaler.
-func DecodeBytes(v any, data []byte) error {
+func DecodeBytes(v any, data []byte) (bool, error) {
 	switch v := v.(type) {
 	case *[]byte:
 		Resize(v, len(data))
 		copy(*v, data)
+		return true, nil
 	case BytesDecoder:
-		return v.DecodeBytes(data)
+		return true, v.DecodeBytes(data)
 	case encoding.BinaryUnmarshaler:
-		return v.UnmarshalBinary(data)
+		return true, v.UnmarshalBinary(data)
 	case encoding.TextUnmarshaler:
-		return v.UnmarshalText(data)
+		return true, v.UnmarshalText(data)
 	}
-	return nil
+	return false, nil
 }
 
 // DecodeSlice adapts slice s into an ElementDecoder and decodes it.

@@ -9,12 +9,9 @@ type Resolver interface {
 	ResolveCodec(v any) Codec
 }
 
-// Resolvers is a slice of [Resolver] values. It also implements the [Resolver] interface.
-type Resolvers []Resolver
-
-// ResolveCodec walks the slice of Resolvers, returning the first non-nil value or an error.
-func (rs Resolvers) ResolveCodec(v any) Codec {
-	for _, r := range rs {
+// Resolve tries to resolve v with resolvers, returning the first non-nil value received.
+func Resolve(v any, resolvers ...Resolver) Codec {
+	for _, r := range resolvers {
 		c := r.ResolveCodec(v)
 		if c != nil {
 			return c
@@ -61,14 +58,24 @@ type FloatDecoder[T Float] interface {
 	DecodeFloat(T) error
 }
 
-// FieldDecoder is the interface implemented by types that can decode
-// fields, such as structs or maps.
-type FieldDecoder interface {
-	DecodeField(dec Decoder, name string) error
+// ElementDecoder is the interface implemented by types that can decode
+// indexed elements, such as a slice, arrays, or maps.
+//
+// The ordinal index and name (if any) are supplied to DecodeElement
+// via the int and string arguments, respectively. The string value
+// may be empty if the source format (such as a JSON array) does not
+// have a natural name.
+type ElementDecoder interface {
+	DecodeElement(Decoder, int, string) error
 }
 
-// ElementDecoder is the interface implemented by types that can decode
-// 0-indexed elements, such as a slice or an array.
-type ElementDecoder interface {
-	DecodeElement(dec Decoder, i int) error
+// FieldDecoder is the interface implemented by types that can decode
+// fields or attributes, such as structs or string-keyed maps.
+//
+// The ordinal index and name (if any) of the decoded field are supplied
+// to DecodeField via the int and string arguments, respectively. The string value
+// may be empty if the source format (such as a JSON array) does not
+// have a natural name.
+type FieldDecoder interface {
+	DecodeField(Decoder, int, string) error
 }
