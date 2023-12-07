@@ -1,17 +1,16 @@
 package xml
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/ydnar/codec"
 )
 
-func TestDecoder(t *testing.T) {
-	x := `<foo age="1" name="hello" here="true" />`
-	want := Foo{1, "hello", true}
-	var v Foo
+func TestDecoderSimple(t *testing.T) {
+	x := `<simple age="1" name="hello" here="true" />`
+	want := Simple{1, "hello", true}
+	var v Simple
 	dec := NewDecoder(strings.NewReader(x))
 	err := dec.Decode(&v)
 	if err != nil {
@@ -22,26 +21,26 @@ func TestDecoder(t *testing.T) {
 	}
 }
 
-type Foo struct {
+type Simple struct {
 	Age  int
 	Name string
 	Here bool
 }
 
-func (f *Foo) DecodeElement(dec codec.Decoder, i int, name string) error {
-	fmt.Printf("DecodeElement(dec, %d, %q)\n", i, name)
-	return dec.Decode(f)
+func (s *Simple) DecodeElement(dec codec.Decoder, i int, name string) error {
+	// fmt.Printf("DecodeElement(dec, %d, %q)\n", i, name)
+	return dec.Decode(s)
 }
 
-func (f *Foo) DecodeField(dec codec.Decoder, i int, name string) error {
-	fmt.Printf("DecodeField(dec, %d, %q)\n", i, name)
+func (s *Simple) DecodeField(dec codec.Decoder, i int, name string) error {
+	// fmt.Printf("DecodeField(dec, %d, %q)\n", i, name)
 	switch name {
 	case "age":
-		return dec.Decode(&f.Age)
+		return dec.Decode(&s.Age)
 	case "name":
-		return dec.Decode(&f.Name)
+		return dec.Decode(&s.Name)
 	case "here":
-		return dec.Decode(&f.Here)
+		return dec.Decode(&s.Here)
 	}
 	return nil
 }
