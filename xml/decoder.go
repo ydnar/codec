@@ -61,8 +61,8 @@ func (dec *Decoder) decode(v any) error {
 				}
 			}
 		}
-		dec.e.Attr = nil
 		dec.attr = xml.Attr{}
+		dec.e.Attr = nil
 	}
 
 	// Decode child nodes.
