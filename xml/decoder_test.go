@@ -1,7 +1,6 @@
 package xml
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 
@@ -18,7 +17,7 @@ func TestDecoderSimple(t *testing.T) {
 		t.Error(err)
 	}
 	if v != want {
-		t.Errorf("Decode: got %v, expdected %v", v, want)
+		t.Errorf("Decode: got %v, expected %v", v, want)
 	}
 }
 
@@ -29,7 +28,6 @@ type Simple struct {
 }
 
 func (s *Simple) DecodeField(dec codec.Decoder, name string) error {
-	fmt.Printf("DecodeField(dec, %q)\n", name)
 	switch name {
 	case "simple":
 		return dec.Decode(s)
@@ -63,7 +61,6 @@ type Complex struct {
 }
 
 func (c *Complex) DecodeField(dec codec.Decoder, name string) error {
-	// fmt.Printf("DecodeField(dec, %d, %q)\n", name)
 	switch name {
 	case "complex":
 		return dec.Decode(c)
@@ -73,4 +70,31 @@ func (c *Complex) DecodeField(dec codec.Decoder, name string) error {
 		return dec.Decode(&c.Simple)
 	}
 	return nil
+}
+
+func TestDecoderText(t *testing.T) {
+	x := `<text>Here is some text that ignores the <b>bold</b> tag.</text>`
+	want := `Here is some text that ignores the bold tag.`
+	var v Text
+	dec := NewDecoder(strings.NewReader(x))
+	err := dec.Decode(&v)
+	if err != nil {
+		t.Error(err)
+	}
+	if string(v.Value) != want {
+		t.Errorf("Decode: got %q, expected %q", string(v.Value), want)
+	}
+}
+
+type Text struct {
+	Value []byte
+}
+
+func (t *Text) DecodeText(text []byte) error {
+	t.Value = append(t.Value, text...)
+	return nil
+}
+
+func (t *Text) DecodeField(dec codec.Decoder, name string) error {
+	return dec.Decode(t) // passthrough
 }

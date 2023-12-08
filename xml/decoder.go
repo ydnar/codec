@@ -71,8 +71,16 @@ func (dec *Decoder) decode(v any) error {
 
 		switch tok := tok.(type) {
 		// TODO: handle PIs, chardata, CDATA, etc.
+		case xml.CharData:
+			_, err := codec.DecodeText(v, tok)
+			if err != nil {
+				return err
+			}
 		case xml.StartElement:
-			return dec.decodeElement(v, tok)
+			err := dec.decodeElement(v, tok)
+			if err != nil {
+				return err
+			}
 		case xml.EndElement:
 			if dec.e.Name != tok.Name {
 				line, col := dec.dec.InputPos()
@@ -127,14 +135,4 @@ func (dec *onceDecoder) Decode(v any) error {
 		return fmt.Errorf("unexpected call to Decode (%d > 1)", dec.calls)
 	}
 	return dec.Decoder.Decode(v)
-}
-
-type ignore struct{}
-
-func (ig *ignore) DecodeElement(dec codec.Decoder, i int, name string) error {
-	return nil
-}
-
-func (ig *ignore) DecodeField(dec codec.Decoder, i int, name string) error {
-	return nil
 }

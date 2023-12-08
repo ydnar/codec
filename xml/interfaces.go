@@ -1,15 +1,17 @@
 package xml
 
+import "github.com/ydnar/codec"
+
 type Name struct {
-	ns   *NS
-	name string
+	Space  string
+	Prefix string
+	Local  string
 }
 
-type NS struct {
-	uri    string
-	prefix string
+type AttrDecoder interface {
+	DecodeXMLAttr(name Name, value string) error
 }
 
-func (ns NS) Equal(other NS) bool {
-	return ns.uri == other.uri
+type ElementDecoder interface {
+	DecodeXMLElement(dec codec.Decoder, name Name) error
 }
