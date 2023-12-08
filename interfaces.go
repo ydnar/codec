@@ -60,22 +60,12 @@ type FloatDecoder[T Float] interface {
 
 // ElementDecoder is the interface implemented by types that can decode
 // indexed elements, such as a slice, arrays, or maps.
-//
-// The ordinal index and name (if any) are supplied to DecodeElement
-// via the int and string arguments, respectively. The string value
-// may be empty if the source format (such as a JSON array) does not
-// have a natural name.
 type ElementDecoder interface {
-	DecodeElement(Decoder, int, string) error
+	DecodeElement(Decoder, int) error
 }
 
 // FieldDecoder is the interface implemented by types that can decode
 // fields or attributes, such as structs or string-keyed maps.
-//
-// The ordinal index and name (if any) of the decoded field are supplied
-// to DecodeField via the int and string arguments, respectively. The string value
-// may be empty if the source format (such as a JSON array) does not
-// have a natural name.
 type FieldDecoder interface {
-	DecodeField(Decoder, int, string) error
+	DecodeField(Decoder, string) error
 }

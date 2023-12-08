@@ -12,11 +12,8 @@ type Decoder struct {
 	dec *xml.Decoder
 	r   []codec.Resolver
 
-	// Current parent XML element
+	// Current XML element
 	e xml.StartElement
-
-	// Number of decoded elements in current parent element or XML document
-	count int
 
 	// Current XML attribute to be decoded
 	attr xml.Attr
@@ -55,7 +52,7 @@ func (dec *Decoder) decode(v any) error {
 		if d, ok := v.(codec.FieldDecoder); ok {
 			for i := 0; i < len(dec.e.Attr); i++ {
 				dec.attr = dec.e.Attr[i]
-				err := d.DecodeField(dec, i, flatten(dec.attr.Name))
+				err := d.DecodeField(dec, flatten(dec.attr.Name))
 				if err != nil {
 					return err
 				}
@@ -90,25 +87,24 @@ func (dec *Decoder) decode(v any) error {
 func (dec *Decoder) decodeElement(v any, start xml.StartElement) error {
 	// Save state
 	saved := dec.e
-	count := dec.count
 
 	// Temporarily set state
 	dec.e = start
-	dec.count = 0
 
+	once := &onceDecoder{Decoder: dec}
 	var err error
 	switch v := v.(type) {
-	case codec.ElementDecoder:
-		err = v.DecodeElement(dec, count, flatten(start.Name))
 	case codec.FieldDecoder:
-		err = v.DecodeField(dec, count, flatten(start.Name))
+		err = v.DecodeField(once, flatten(start.Name))
 	}
 
-	// TODO: check call count
+	// TODO: check Decode call count and call err = dec.Decode(nil)
+	if once.calls == 0 {
+		err = dec.Decode(nil)
+	}
 
 	// Restore state
 	dec.e = saved
-	dec.count = count + 1
 
 	return err
 }

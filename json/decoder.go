@@ -83,29 +83,14 @@ func (dec *Decoder) decodeToken(v any) error {
 // decodeObject decodes a JSON object into v.
 // It expects that the initial { token has already been decoded.
 func (dec *Decoder) decodeObject(v any) error {
-	var f decodeFunc
-	switch v := v.(type) {
-	case codec.FieldDecoder:
-		f = v.DecodeField
-	case codec.ElementDecoder:
-		f = v.DecodeElement
-	}
-
-	if f == nil {
-		for dec.dec.More() {
-			err := dec.Decode(nil)
-			if err != nil {
-				return err
-			}
-		}
-	} else {
+	if d, ok := v.(codec.FieldDecoder); ok {
 		for i := 0; dec.dec.More(); i++ {
 			name, err := dec.stringToken()
 			if err != nil {
 				return err
 			}
 			once := &onceDecoder{Decoder: dec}
-			err = f(once, i, name)
+			err = d.DecodeField(once, name)
 			if err != nil {
 				return err
 			}
@@ -114,6 +99,13 @@ func (dec *Decoder) decodeObject(v any) error {
 				if err != nil {
 					return err
 				}
+			}
+		}
+	} else {
+		for dec.dec.More() {
+			err := dec.Decode(nil)
+			if err != nil {
+				return err
 			}
 		}
 	}
@@ -132,25 +124,10 @@ func (dec *Decoder) decodeObject(v any) error {
 // decodeArray decodes a JSON array into v.
 // It expects that the initial [ token has already been decoded.
 func (dec *Decoder) decodeArray(v any) error {
-	var f decodeFunc
-	switch v := v.(type) {
-	case codec.ElementDecoder:
-		f = v.DecodeElement
-	case codec.FieldDecoder:
-		f = v.DecodeField
-	}
-
-	if f == nil {
-		for dec.dec.More() {
-			err := dec.Decode(nil)
-			if err != nil {
-				return err
-			}
-		}
-	} else {
+	if d, ok := v.(codec.ElementDecoder); ok {
 		for i := 0; dec.dec.More(); i++ {
 			once := &onceDecoder{Decoder: dec}
-			err := f(once, i, "")
+			err := d.DecodeElement(once, i)
 			if err != nil {
 				return err
 			}
@@ -159,6 +136,13 @@ func (dec *Decoder) decodeArray(v any) error {
 				if err != nil {
 					return err
 				}
+			}
+		}
+	} else {
+		for dec.dec.More() {
+			err := dec.Decode(nil)
+			if err != nil {
+				return err
 			}
 		}
 	}

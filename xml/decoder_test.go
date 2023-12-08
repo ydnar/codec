@@ -28,13 +28,8 @@ type Simple struct {
 	Here bool
 }
 
-// func (s *Simple) DecodeElement(dec codec.Decoder, i int, name string) error {
-// 	// fmt.Printf("DecodeElement(dec, %d, %q)\n", i, name)
-// 	return dec.Decode(s)
-// }
-
-func (s *Simple) DecodeField(dec codec.Decoder, i int, name string) error {
-	fmt.Printf("DecodeField(dec, %d, %q)\n", i, name)
+func (s *Simple) DecodeField(dec codec.Decoder, name string) error {
+	fmt.Printf("DecodeField(dec, %q)\n", name)
 	switch name {
 	case "simple":
 		return dec.Decode(s)
@@ -58,7 +53,7 @@ func TestDecoderComplex(t *testing.T) {
 		t.Error(err)
 	}
 	if v != want {
-		t.Errorf("Decode: got %v, expdected %v", v, want)
+		t.Errorf("Decode: got %v, expected %v", v, want)
 	}
 }
 
@@ -67,22 +62,15 @@ type Complex struct {
 	Simple Simple
 }
 
-func (c *Complex) DecodeElement(dec codec.Decoder, i int, name string) error {
-	// fmt.Printf("DecodeElement(dec, %d, %q)\n", i, name)
+func (c *Complex) DecodeField(dec codec.Decoder, name string) error {
+	// fmt.Printf("DecodeField(dec, %d, %q)\n", name)
 	switch name {
 	case "complex":
 		return dec.Decode(c)
-	case "simple":
-		return dec.Decode(&c.Simple)
-	}
-	return nil
-}
-
-func (c *Complex) DecodeField(dec codec.Decoder, i int, name string) error {
-	// fmt.Printf("DecodeField(dec, %d, %q)\n", i, name)
-	switch name {
 	case "length":
 		return dec.Decode(&c.Length)
+	case "simple":
+		return dec.Decode(&c.Simple)
 	}
 	return nil
 }

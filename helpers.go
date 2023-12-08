@@ -24,7 +24,7 @@ type sliceCodec[E comparable] []E
 
 // DecodeElement implements the ElementDecoder interface,
 // dynamically resizing the slice if necessary.
-func (s *sliceCodec[E]) DecodeElement(dec Decoder, i int, name string) error {
+func (s *sliceCodec[E]) DecodeElement(dec Decoder, i int) error {
 	var v E
 	if i >= 0 && i < len(*s) {
 		v = (*s)[i]
@@ -63,7 +63,7 @@ type mapCodec[K ~string, V any] map[K]V
 
 // DecodeField implements the FieldDecoder interface,
 // allocating the underlying map if necessary.
-func (m *mapCodec[K, V]) DecodeField(dec Decoder, i int, name string) error {
+func (m *mapCodec[K, V]) DecodeField(dec Decoder, name string) error {
 	var v V
 	err := dec.Decode(&v)
 	if err != nil {
