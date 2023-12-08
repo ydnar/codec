@@ -46,6 +46,11 @@ type StringDecoder interface {
 	DecodeString(string) error
 }
 
+// TextDecoder is the interface implemented by types that can decode text from a byte slice.
+type TextDecoder interface {
+	DecodeText([]byte) error
+}
+
 // IntDecoder is the interface implemented by types that can decode
 // from an integer value. See [Integer] for the list of supported types.
 type IntDecoder[T Integer] interface {

@@ -252,6 +252,29 @@ func DecodeBytes(v any, data []byte) (bool, error) {
 	return false, nil
 }
 
+// DecodeText decodes text into v. The following types are supported:
+// []byte, TextDecoder, and encoding.TextUnmarshaler.
+func DecodeText(v any, text []byte) (bool, error) {
+	switch v := v.(type) {
+	case *[]byte:
+		Resize(v, len(text))
+		copy(*v, text)
+		return true, nil
+	case *string:
+		*v = string(text)
+		return true, nil
+	case **string:
+		s := string(text)
+		*v = &s
+		return true, nil
+	case TextDecoder:
+		return true, v.DecodeText(text)
+	case encoding.TextUnmarshaler:
+		return true, v.UnmarshalText(text)
+	}
+	return false, nil
+}
+
 // DecodeSlice adapts slice s into an ElementDecoder and decodes it.
 func DecodeSlice[T comparable](dec Decoder, s *[]T) error {
 	return dec.Decode(Slice(s))
