@@ -1,12 +1,5 @@
 package xml
 
-import "github.com/ydnar/codec"
-
-type Resolver interface {
-	codec.Resolver
-	ResolveXMLCodec(Name) codec.Codec
-}
-
 type Name struct {
 	ns   *NS
 	name string

@@ -28,14 +28,16 @@ type Simple struct {
 	Here bool
 }
 
-func (s *Simple) DecodeElement(dec codec.Decoder, i int, name string) error {
-	// fmt.Printf("DecodeElement(dec, %d, %q)\n", i, name)
-	return dec.Decode(s)
-}
+// func (s *Simple) DecodeElement(dec codec.Decoder, i int, name string) error {
+// 	// fmt.Printf("DecodeElement(dec, %d, %q)\n", i, name)
+// 	return dec.Decode(s)
+// }
 
 func (s *Simple) DecodeField(dec codec.Decoder, i int, name string) error {
-	// fmt.Printf("DecodeField(dec, %d, %q)\n", i, name)
+	fmt.Printf("DecodeField(dec, %d, %q)\n", i, name)
 	switch name {
+	case "simple":
+		return dec.Decode(s)
 	case "age":
 		return dec.Decode(&s.Age)
 	case "name":
@@ -66,7 +68,7 @@ type Complex struct {
 }
 
 func (c *Complex) DecodeElement(dec codec.Decoder, i int, name string) error {
-	fmt.Printf("DecodeElement(dec, %d, %q)\n", i, name)
+	// fmt.Printf("DecodeElement(dec, %d, %q)\n", i, name)
 	switch name {
 	case "complex":
 		return dec.Decode(c)
@@ -77,7 +79,7 @@ func (c *Complex) DecodeElement(dec codec.Decoder, i int, name string) error {
 }
 
 func (c *Complex) DecodeField(dec codec.Decoder, i int, name string) error {
-	fmt.Printf("DecodeField(dec, %d, %q)\n", i, name)
+	// fmt.Printf("DecodeField(dec, %d, %q)\n", i, name)
 	switch name {
 	case "length":
 		return dec.Decode(&c.Length)

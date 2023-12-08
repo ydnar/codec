@@ -87,12 +87,7 @@ func (dec *Decoder) decode(v any) error {
 	}
 }
 
-func (dec *Decoder) decodeElement(o any, start xml.StartElement) error {
-	d, ok := o.(codec.ElementDecoder)
-	if !ok {
-		d = &ignore{}
-	}
-
+func (dec *Decoder) decodeElement(v any, start xml.StartElement) error {
 	// Save state
 	saved := dec.e
 	count := dec.count
@@ -101,7 +96,13 @@ func (dec *Decoder) decodeElement(o any, start xml.StartElement) error {
 	dec.e = start
 	dec.count = 0
 
-	err := d.DecodeElement(dec, count, flatten(start.Name))
+	var err error
+	switch v := v.(type) {
+	case codec.ElementDecoder:
+		err = v.DecodeElement(dec, count, flatten(start.Name))
+	case codec.FieldDecoder:
+		err = v.DecodeField(dec, count, flatten(start.Name))
+	}
 
 	// TODO: check call count
 
