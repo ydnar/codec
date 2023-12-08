@@ -81,17 +81,15 @@ func TestDecoderText(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if string(v.Value) != want {
-		t.Errorf("Decode: got %q, expected %q", string(v.Value), want)
+	if string(v) != want {
+		t.Errorf("Decode: got %q, expected %q", string(v), want)
 	}
 }
 
-type Text struct {
-	Value []byte
-}
+type Text []byte
 
 func (t *Text) DecodeText(text []byte) error {
-	t.Value = append(t.Value, text...)
+	*t = append(*t, text...)
 	return nil
 }
 
