@@ -276,11 +276,11 @@ func DecodeText(v any, text []byte) (bool, error) {
 }
 
 // DecodeSlice adapts slice s into an ElementDecoder and decodes it.
-func DecodeSlice[T comparable](dec Decoder, s *[]T) error {
+func DecodeSlice[S ~[]E, E comparable](dec Decoder, s *S) error {
 	return dec.Decode(Slice(s))
 }
 
 // DecodeMap adapts a string-keyed map m into a FieldDecoder and decodes it.
-func DecodeMap[K ~string, V any](dec Decoder, m *map[K]V) error {
+func DecodeMap[M ~map[K]V, K ~string, V any](dec Decoder, m *M) error {
 	return dec.Decode(Map(m))
 }
