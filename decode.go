@@ -253,7 +253,7 @@ func DecodeBytes(v any, data []byte) (bool, error) {
 }
 
 // DecodeText decodes text into v. The following types are supported:
-// []byte, TextDecoder, and encoding.TextUnmarshaler.
+// []byte, *string, **string, TextDecoder, and encoding.TextUnmarshaler.
 func DecodeText(v any, text []byte) (bool, error) {
 	switch v := v.(type) {
 	case *[]byte:
@@ -266,6 +266,27 @@ func DecodeText(v any, text []byte) (bool, error) {
 	case **string:
 		s := string(text)
 		*v = &s
+		return true, nil
+	case TextDecoder:
+		return true, v.DecodeText(text)
+	case encoding.TextUnmarshaler:
+		return true, v.UnmarshalText(text)
+	}
+	return false, nil
+}
+
+// AppendText appends text onto v. The following types are supported:
+// []byte, *string, **string, TextDecoder, and encoding.TextUnmarshaler.
+func AppendText(v any, text []byte) (bool, error) {
+	switch v := v.(type) {
+	case *[]byte:
+		*v = append(*v, text...)
+		return true, nil
+	case *string:
+		*v += string(text)
+		return true, nil
+	case **string:
+		*Must(v) += string(text)
 		return true, nil
 	case TextDecoder:
 		return true, v.DecodeText(text)
