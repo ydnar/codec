@@ -21,20 +21,20 @@ func Expand[S ~[]E, E any](s *S, size int) {
 	}
 }
 
-// DecodeSlice adapts slice s into an ElementDecoder and decodes it.
+// DecodeSlice adapts slice s into an [ElementDecoder] and decodes it.
 func DecodeSlice[S ~[]E, E comparable](dec Decoder, s *S) error {
 	return dec.Decode(Slice(s))
 }
 
-// Slice returns an ElementDecoder for slice s.
+// Slice returns an [ElementDecoder] for slice s.
 func Slice[S ~[]E, E comparable](s *S) ElementDecoder {
 	return &sliceCodec[S, E]{S: s}
 }
 
-// sliceCodec is an implementation of ElementDecoder for an arbitrary slice.
+// sliceCodec is an implementation of [ElementDecoder] for an arbitrary slice.
 type sliceCodec[S ~[]E, E comparable] struct{ S *S }
 
-// DecodeElement implements the ElementDecoder interface,
+// DecodeElement implements the [ElementDecoder] interface,
 // dynamically resizing the slice if necessary.
 func (c *sliceCodec[S, E]) DecodeElement(dec Decoder, i int) error {
 	var v E
@@ -52,20 +52,20 @@ func (c *sliceCodec[S, E]) DecodeElement(dec Decoder, i int) error {
 	return nil
 }
 
-// DecodeMap adapts a string-keyed map m into a FieldDecoder and decodes it.
+// DecodeMap adapts a string-keyed map m into a [FieldDecoder] and decodes it.
 func DecodeMap[M ~map[K]V, K ~string, V any](dec Decoder, m *M) error {
 	return dec.Decode(Map(m))
 }
 
-// Map returns an FieldDecoder for map m.
+// Map returns an [FieldDecoder] for map m.
 func Map[M ~map[K]V, K ~string, V any](m *M) FieldDecoder {
 	return &mapCodec[M, K, V]{m}
 }
 
-// mapCodec is an implementation of FieldDecoder for an arbitrary map with string keys.
+// mapCodec is an implementation of [FieldDecoder] for an arbitrary map with string keys.
 type mapCodec[M ~map[K]V, K ~string, V any] struct{ M *M }
 
-// DecodeField implements the FieldDecoder interface,
+// DecodeField implements the [FieldDecoder] interface,
 // allocating the underlying map if necessary.
 func (c *mapCodec[M, K, V]) DecodeField(dec Decoder, name string) error {
 	var v V
