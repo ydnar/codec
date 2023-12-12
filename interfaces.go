@@ -42,11 +42,6 @@ type NilUnmarshaler interface {
 	UnmarshalNil() error
 }
 
-// BoolDecoder is the interface implemented by types that can decode from a bool.
-type BoolDecoder interface {
-	DecodeBool(bool) error
-}
-
 // BytesDecoder is the interface implemented by types that can decode from a byte slice.
 // It is similar to [encoding.BinaryUnmarshaler] and [encoding.TextUnmarshaler].
 type BytesDecoder interface {

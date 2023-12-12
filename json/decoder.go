@@ -47,7 +47,7 @@ func (dec *Decoder) decodeToken(v any) error {
 
 	switch tok := tok.(type) {
 	case bool:
-		_, err := codec.DecodeBool(v, tok)
+		_, err := codec.UnmarshalBool(v, tok)
 		return err
 	case json.Number:
 		if ok, err := codec.DecodeNumber(v, string(tok)); ok {

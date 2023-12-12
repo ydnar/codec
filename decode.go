@@ -26,7 +26,7 @@ func DecodeValue(v any, val string) (bool, error) {
 	if ok, err := DecodeBytes(v, []byte(val)); ok {
 		return ok, err
 	}
-	if ok, err := DecodeBoolString(v, val); ok {
+	if ok, err := UnmarshalBoolString(v, val); ok {
 		return ok, err
 	}
 	if ok, err := DecodeNumber(v, val); ok {
@@ -35,11 +35,10 @@ func DecodeValue(v any, val string) (bool, error) {
 	return false, nil
 }
 
-// DecodeBool decodes a boolean value into v.
-// If *v is a pointer to a bool, then a bool will be allocated.
-// If v implements BoolDecoder, then DecodeBool(b) is called.
-// Returns true if v matches a known type and a decode was attempted.
-func DecodeBool(v any, b bool) (bool, error) {
+// UnmarshalBool unmarshals a bool into v.
+// Supported types of v are *bool, **bool, and ScalarUnmarshaler[bool].
+// Returns true if v matches a known type.
+func UnmarshalBool(v any, b bool) (bool, error) {
 	switch v := v.(type) {
 	case *bool:
 		*v = b
@@ -47,28 +46,27 @@ func DecodeBool(v any, b bool) (bool, error) {
 	case **bool:
 		*Must(v) = b
 		return true, nil
-	case BoolDecoder:
-		return true, v.DecodeBool(b)
+	case ScalarUnmarshaler[bool]:
+		return true, v.UnmarshalScalar(b)
 	}
 	return false, nil
 }
 
-// DecodeBoolString decodes a string representing a boolean value into v.
+// UnmarshalBoolString unmarshals a string representing a bool into v.
 //
 // The values "", "0", "false", and "FALSE" are considered false.
 // The values "1", "true", and "TRUE" are considered true.
 // All other values are ignored and (false, nil) will be returned.
 //
-// If *v is a pointer to a bool, then a bool will be allocated.
-// If v implements BoolDecoder, then DecodeBool(b) is called.
+// Returns true if v matches a known type and s matches a known value.
 //
-// Returns true if a decode was attempted.
-func DecodeBoolString(v any, s string) (bool, error) {
+// See [UnmarshalBool] for more information.
+func UnmarshalBoolString(v any, s string) (bool, error) {
 	if s == "" || s == "0" || s == "false" || s == "FALSE" {
-		return DecodeBool(v, false)
+		return UnmarshalBool(v, false)
 	}
 	if s == "1" || s == "true" || s == "TRUE" {
-		return DecodeBool(v, true)
+		return UnmarshalBool(v, true)
 	}
 	return false, nil
 }
