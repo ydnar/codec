@@ -6,213 +6,272 @@ import (
 	"unsafe"
 )
 
-// DecodeNil calls DecodeNil on v if v implements NilDecoder.
-func DecodeNil(v any) error {
-	if v, ok := v.(NilDecoder); ok {
-		return v.DecodeNil()
+// UnmarshalNil calls UnmarshalNil on v if v implements NilUnmarshaler.
+// Returns true if v implements NilUnmarshaler.
+func UnmarshalNil(v any) (bool, error) {
+	if v, ok := v.(NilUnmarshaler); ok {
+		return true, v.UnmarshalNil()
 	}
-	return nil
+	return false, nil
 }
 
-// DecodeBool decodes a boolean value into v.
-// If *v is a pointer to a bool, then a bool will be allocated.
-// If v implements BoolDecoder, then DecodeBool(b) is called.
-func DecodeBool(v any, b bool) error {
+// UnmarshalValue unmarshals a string value into v.
+// It calls [UnmarshalString], [UnmarshalText], [UnmarshalBoolString], and [UnmarshalDecimal],
+// returning after the first matching unmarshaler.
+// Returns false, nil if unable to unmarshal val into v.
+func UnmarshalValue(v any, val string) (bool, error) {
+	if ok, err := UnmarshalString(v, val); ok {
+		return ok, err
+	}
+	if ok, err := UnmarshalText(v, []byte(val)); ok {
+		return ok, err
+	}
+	if ok, err := UnmarshalBoolString(v, val); ok {
+		return ok, err
+	}
+	if ok, err := UnmarshalDecimal(v, val); ok {
+		return ok, err
+	}
+	return false, nil
+}
+
+// UnmarshalBool unmarshals a bool into v.
+// Supported types of v: *bool, **bool, and ScalarUnmarshaler[bool].
+// Returns true if v matches a supported type.
+func UnmarshalBool(v any, b bool) (bool, error) {
 	switch v := v.(type) {
 	case *bool:
 		*v = b
+		return true, nil
 	case **bool:
 		*Must(v) = b
-	case BoolDecoder:
-		return v.DecodeBool(b)
+		return true, nil
+	case ScalarUnmarshaler[bool]:
+		return true, v.UnmarshalScalar(b)
 	}
-	return nil
+	return false, nil
 }
 
-// DecodeNumber decodes a number encoded as a string into v.
-// The following core types are supported:
-// int8, uint8, int16, uint16, int32, uint32, int64, uint64, float32, and float64.
-// Pointers to the above types are also supported, and will be allocated if necessary.
-// The interface types IntDecoder, and FloatDecoder are also supported.
-// If unable to decode into a numeric type, it will fall back to DecodeString.
-func DecodeNumber(v any, n string) error {
+// UnmarshalBoolString unmarshals a string representing a bool into v.
+//
+// The values "", "0", "false", and "FALSE" are considered false.
+// The values "1", "true", and "TRUE" are considered true.
+// All other values are ignored and (false, nil) will be returned.
+//
+// Returns true if v matches a known type and s matches a known value.
+//
+// See [UnmarshalBool] for more information.
+func UnmarshalBoolString(v any, s string) (bool, error) {
+	if s == "" || s == "0" || s == "false" || s == "FALSE" {
+		return UnmarshalBool(v, false)
+	}
+	if s == "1" || s == "true" || s == "TRUE" {
+		return UnmarshalBool(v, true)
+	}
+	return false, nil
+}
+
+// UnmarshalDecimal decodes a string containing a base-10 number into v.
+// The following types for v are supported:
+// int8, uint8, int16, uint16, int32, uint32, int64, uint64, float32, float64,
+// and ScalarUnmarshaler[int64 | int64 | float32 | float64].
+//
+// Returns true if v matches a known type.
+//
+// TODO: support [complex128]?
+func UnmarshalDecimal(v any, n string) (bool, error) {
 	switch v := v.(type) {
+	case nil:
+		return false, nil
+
 	case *int:
-		return decodeSignedValue(v, n)
+		return unmarshalSignedDecimal(v, n)
 	case **int:
-		return decodeSignedValue(Must(v), n)
+		return unmarshalSignedDecimal(Must(v), n)
 	case *int8:
-		return decodeSignedValue(v, n)
+		return unmarshalSignedDecimal(v, n)
 	case **int8:
-		return decodeSignedValue(Must(v), n)
+		return unmarshalSignedDecimal(Must(v), n)
 	case *int16:
-		return decodeSignedValue(v, n)
+		return unmarshalSignedDecimal(v, n)
 	case **int16:
-		return decodeSignedValue(Must(v), n)
+		return unmarshalSignedDecimal(Must(v), n)
 	case *int32:
-		return decodeSignedValue(v, n)
+		return unmarshalSignedDecimal(v, n)
 	case **int32:
-		return decodeSignedValue(Must(v), n)
+		return unmarshalSignedDecimal(Must(v), n)
 	case *int64:
-		return decodeSignedValue(v, n)
+		return unmarshalSignedDecimal(v, n)
 	case **int64:
-		return decodeSignedValue(Must(v), n)
+		return unmarshalSignedDecimal(Must(v), n)
 
 	case *uint:
-		return decodeUnsignedValue(v, n)
+		return unmarshalUnsignedDecimal(v, n)
 	case **uint:
-		return decodeUnsignedValue(Must(v), n)
+		return unmarshalUnsignedDecimal(Must(v), n)
 	case *uint8:
-		return decodeUnsignedValue(v, n)
+		return unmarshalUnsignedDecimal(v, n)
 	case **uint8:
-		return decodeUnsignedValue(Must(v), n)
+		return unmarshalUnsignedDecimal(Must(v), n)
 	case *uint16:
-		return decodeUnsignedValue(v, n)
+		return unmarshalUnsignedDecimal(v, n)
 	case **uint16:
-		return decodeUnsignedValue(Must(v), n)
+		return unmarshalUnsignedDecimal(Must(v), n)
 	case *uint32:
-		return decodeUnsignedValue(v, n)
+		return unmarshalUnsignedDecimal(v, n)
 	case **uint32:
-		return decodeUnsignedValue(Must(v), n)
+		return unmarshalUnsignedDecimal(Must(v), n)
 	case *uint64:
-		return decodeUnsignedValue(v, n)
+		return unmarshalUnsignedDecimal(v, n)
 	case **uint64:
-		return decodeUnsignedValue(Must(v), n)
+		return unmarshalUnsignedDecimal(Must(v), n)
 
 	case *float32:
-		return decodeFloatValue(v, n)
+		return unmarshalFloatDecimal(v, n)
 	case **float32:
-		return decodeFloatValue(Must(v), n)
+		return unmarshalFloatDecimal(Must(v), n)
 	case *float64:
-		return decodeFloatValue(v, n)
+		return unmarshalFloatDecimal(v, n)
 	case **float64:
-		return decodeFloatValue(Must(v), n)
+		return unmarshalFloatDecimal(Must(v), n)
 
-	case IntDecoder[int]:
-		return decodeSigned(v, n)
-	case IntDecoder[int8]:
-		return decodeSigned(v, n)
-	case IntDecoder[int16]:
-		return decodeSigned(v, n)
-	case IntDecoder[int32]:
-		return decodeSigned(v, n)
-	case IntDecoder[int64]:
-		return decodeSigned(v, n)
-
-	case IntDecoder[uint]:
-		return decodeUnsigned(v, n)
-	case IntDecoder[uint8]:
-		return decodeUnsigned(v, n)
-	case IntDecoder[uint16]:
-		return decodeUnsigned(v, n)
-	case IntDecoder[uint32]:
-		return decodeUnsigned(v, n)
-	case IntDecoder[uint64]:
-		return decodeUnsigned(v, n)
-
-	case FloatDecoder[float32]:
-		return decodeFloat(v, n)
-	case FloatDecoder[float64]:
-		return decodeFloat(v, n)
+	case ScalarUnmarshaler[int64]:
+		return unmarshalScalarInt64(v, n)
+	case ScalarUnmarshaler[uint64]:
+		return unmarshalScalarUint64(v, n)
+	case ScalarUnmarshaler[float64]:
+		return unmarshalScalarFloat64(v, n)
 	}
 
-	return DecodeString(v, n)
+	return false, nil
 }
 
-func decodeSignedValue[T Signed](v *T, n string) error {
+func unmarshalSignedDecimal[T int | int8 | int16 | int32 | int64](v *T, n string) (bool, error) {
 	i, err := strconv.ParseInt(n, 10, int(unsafe.Sizeof(*v)))
 	if err != nil {
-		return err
+		return true, err
 	}
 	*v = T(i)
-	return nil
+	return true, nil
 }
 
-func decodeSigned[T Signed](v IntDecoder[T], n string) error {
-	var x T
-	i, err := strconv.ParseInt(n, 10, int(unsafe.Sizeof(x))*8)
-	if err != nil {
-		return err
-	}
-	return v.DecodeInt(T(i))
-}
-
-func decodeUnsignedValue[T Unsigned](v *T, n string) error {
+func unmarshalUnsignedDecimal[T uint | uint8 | uint16 | uint32 | uint64](v *T, n string) (bool, error) {
 	i, err := strconv.ParseUint(n, 10, int(unsafe.Sizeof(*v)))
 	if err != nil {
-		return err
+		return true, err
 	}
 	*v = T(i)
-	return nil
+	return true, nil
 }
 
-func decodeUnsigned[T Unsigned](v IntDecoder[T], n string) error {
-	var x T
-	i, err := strconv.ParseUint(n, 10, int(unsafe.Sizeof(x))*8)
-	if err != nil {
-		return err
-	}
-	return v.DecodeInt(T(i))
-}
-
-func decodeFloatValue[T Float](v *T, n string) error {
+func unmarshalFloatDecimal[T float32 | float64](v *T, n string) (bool, error) {
 	f, err := strconv.ParseFloat(n, int(unsafe.Sizeof(*v)))
 	if err != nil {
-		return err
+		return true, err
 	}
 	*v = T(f)
-	return nil
+	return true, nil
 }
 
-func decodeFloat[T Float](v FloatDecoder[T], n string) error {
-	var x T
-	f, err := strconv.ParseFloat(n, int(unsafe.Sizeof(x))*8)
+func unmarshalScalarInt64(v ScalarUnmarshaler[int64], n string) (bool, error) {
+	i, err := strconv.ParseInt(n, 10, 64)
 	if err != nil {
-		return err
+		return true, err
 	}
-	return v.DecodeFloat(T(f))
+	return true, v.UnmarshalScalar(i)
 }
 
-// DecodeString decodes s into v. The following types are supported:
-// string, *string, and StringDecoder. It will fall back to DecodeBytes
-// to attempt to decode into a byte slice or binary decoder.
-func DecodeString(v any, s string) error {
+func unmarshalScalarUint64(v ScalarUnmarshaler[uint64], n string) (bool, error) {
+	i, err := strconv.ParseUint(n, 10, 64)
+	if err != nil {
+		return true, err
+	}
+	return true, v.UnmarshalScalar(i)
+}
+
+func unmarshalScalarFloat64(v ScalarUnmarshaler[float64], n string) (bool, error) {
+	f, err := strconv.ParseFloat(n, 64)
+	if err != nil {
+		return true, err
+	}
+	return true, v.UnmarshalScalar(f)
+}
+
+// UnmarshalString unmarshals string s into v.
+// Supported types of v: *string, **string, [StringUnmarshaler], and [encoding.TextUnmarshaler].
+// Returns true if v is a supported type.
+func UnmarshalString(v any, s string) (bool, error) {
 	switch v := v.(type) {
 	case *string:
 		*v = s
-		return nil
+		return true, nil
 	case **string:
 		*v = &s
-		return nil
-	case StringDecoder:
-		return v.DecodeString(s)
+		return true, nil
+	case StringUnmarshaler:
+		return true, v.UnmarshalString(s)
+	case encoding.TextUnmarshaler:
+		return true, v.UnmarshalText([]byte(s))
 	}
-	return DecodeBytes(v, []byte(s))
+	return false, nil
 }
 
-// DecodeBytes decodes data into v. The following types are supported:
-// []byte, BytesDecoder, encoding.BinaryUnmarshaler, and encoding.TextUnmarshaler.
-func DecodeBytes(v any, data []byte) error {
+// UnmarshalText unmarshals text into v.
+// Supported types of v: *[]byte, *string, **string, or [encoding.TextUnmarshaler].
+// If v is a byte slice or string, v will be set to text.
+func UnmarshalText(v any, text []byte) (bool, error) {
 	switch v := v.(type) {
 	case *[]byte:
-		Resize(v, len(data))
-		copy(*v, data)
-	case BytesDecoder:
-		return v.DecodeBytes(data)
-	case encoding.BinaryUnmarshaler:
-		return v.UnmarshalBinary(data)
+		Expand(v, len(text))
+		copy(*v, text)
+		return true, nil
+	case *string:
+		*v = string(text)
+		return true, nil
+	case **string:
+		s := string(text)
+		*v = &s
+		return true, nil
 	case encoding.TextUnmarshaler:
-		return v.UnmarshalText(data)
+		return true, v.UnmarshalText(text)
 	}
-	return nil
+	return false, nil
 }
 
-// DecodeSlice adapts slice s into an ElementDecoder and decodes it.
-func DecodeSlice[T comparable](dec Decoder, s *[]T) error {
-	return dec.Decode(Slice(s))
+// AppendText appends text onto v.
+// Unlike [UnmarshalText], this will append to, rather than replace the value of v.
+//
+// Supported types of v: *[]byte, *string, **string, [TextAppender], and [encoding.TextUnmarshaler].
+func AppendText(v any, text []byte) (bool, error) {
+	switch v := v.(type) {
+	case *[]byte:
+		*v = append(*v, text...)
+		return true, nil
+	case *string:
+		*v += string(text)
+		return true, nil
+	case **string:
+		*Must(v) += string(text)
+		return true, nil
+	case TextAppender:
+		return true, v.AppendText(text)
+	case encoding.TextUnmarshaler:
+		return true, v.UnmarshalText(text)
+	}
+	return false, nil
 }
 
-// DecodeMap adapts a string-keyed map m into a FieldDecoder and decodes it.
-func DecodeMap[K ~string, V any](dec Decoder, m *map[K]V) error {
-	return dec.Decode(Map(m))
+// UnmarshalBinary unmarshals binary data into v.
+// Supported types of v: *[]byte, or [encoding.BinaryUnmarshaler].
+// Returns true if v is a supported type.
+func UnmarshalBinary(v any, data []byte) (bool, error) {
+	switch v := v.(type) {
+	case *[]byte:
+		Expand(v, len(data))
+		copy(*v, data)
+		return true, nil
+	case encoding.BinaryUnmarshaler:
+		return true, v.UnmarshalBinary(data)
+	}
+	return false, nil
 }
