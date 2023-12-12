@@ -20,7 +20,7 @@ func UnmarshalNil(v any) (bool, error) {
 // returning after the first attempted decode.
 // Returns false, nil if unable to decode into v.
 func DecodeValue(v any, val string) (bool, error) {
-	if ok, err := DecodeString(v, val); ok {
+	if ok, err := UnmarshalString(v, val); ok {
 		return ok, err
 	}
 	if ok, err := DecodeBytes(v, []byte(val)); ok {
@@ -197,10 +197,10 @@ func unmarshalScalarFloat64(v ScalarUnmarshaler[float64], n string) (bool, error
 	return true, v.UnmarshalScalar(f)
 }
 
-// DecodeString decodes s into v. The following types are supported:
-// string, *string, and StringDecoder.
-// Returns true if v matches a known type and a decode was attempted.
-func DecodeString(v any, s string) (bool, error) {
+// UnmarshalString unmarshals string s into v.
+// Supported types of v: *string, **string, and StringUnmarshaler.
+// Returns true if v is a supported type.
+func UnmarshalString(v any, s string) (bool, error) {
 	switch v := v.(type) {
 	case *string:
 		*v = s
@@ -208,8 +208,8 @@ func DecodeString(v any, s string) (bool, error) {
 	case **string:
 		*v = &s
 		return true, nil
-	case StringDecoder:
-		return true, v.DecodeString(s)
+	case StringUnmarshaler:
+		return true, v.UnmarshalString(s)
 	}
 	return false, nil
 }

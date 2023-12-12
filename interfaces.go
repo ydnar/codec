@@ -48,9 +48,9 @@ type BytesDecoder interface {
 	DecodeBytes([]byte) error
 }
 
-// StringDecoder is the interface implemented by types that can decode from a string.
-type StringDecoder interface {
-	DecodeString(string) error
+// StringUnmarshaler is the interface implemented by types that can unmarshal from a string.
+type StringUnmarshaler interface {
+	UnmarshalString(string) error
 }
 
 // TextDecoder is the interface implemented by types that can decode text from a byte slice.

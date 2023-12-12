@@ -53,14 +53,14 @@ func (dec *Decoder) decodeToken(v any) error {
 		if ok, err := codec.UnmarshalDecimal(v, string(tok)); ok {
 			return err
 		}
-		if ok, err := codec.DecodeString(v, string(tok)); ok {
+		if ok, err := codec.UnmarshalString(v, string(tok)); ok {
 			return err
 		}
 		if ok, err := codec.DecodeBytes(v, []byte(tok)); ok {
 			return err
 		}
 	case string:
-		if ok, err := codec.DecodeString(v, string(tok)); ok {
+		if ok, err := codec.UnmarshalString(v, string(tok)); ok {
 			return err
 		}
 		if ok, err := codec.DecodeBytes(v, []byte(tok)); ok {
