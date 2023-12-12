@@ -72,7 +72,7 @@ func (c *Complex) DecodeField(dec codec.Decoder, name string) error {
 	return nil
 }
 
-func TestDecoderText(t *testing.T) {
+func TestDecoderAppendText(t *testing.T) {
 	x := `<text>Here is some text that ignores the <b>bold</b> tag.</text>`
 	want := `Here is some text that ignores the bold tag.`
 	var v Text
@@ -95,4 +95,18 @@ func (t *Text) AppendText(text []byte) error {
 
 func (t *Text) DecodeField(dec codec.Decoder, name string) error {
 	return dec.Decode(t) // passthrough
+}
+
+func TestDecoderBytes(t *testing.T) {
+	x := `<foo>Lorem ipsum <b>bold</b> text next to <i>italic</i> text.</foo>`
+	want := `Lorem ipsum bold text next to italic text.`
+	var v []byte
+	dec := NewDecoder(strings.NewReader(x))
+	err := dec.Decode(&v)
+	if err != nil {
+		t.Error(err)
+	}
+	if string(v) != want {
+		t.Errorf("Decode: got %q, expected %q", string(v), want)
+	}
 }

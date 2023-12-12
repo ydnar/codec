@@ -93,28 +93,27 @@ func (dec *Decoder) decode(v any) error {
 }
 
 func (dec *Decoder) decodeElement(v any, start xml.StartElement) error {
-	// Save state
 	saved := dec.e
-
-	// Temporarily set state
+	defer func() { dec.e = saved }()
 	dec.e = start
 
-	once := &onceDecoder{Decoder: dec}
-	var err error
 	switch v := v.(type) {
 	case codec.FieldDecoder:
-		err = v.DecodeField(once, flatten(start.Name))
+		once := &onceDecoder{Decoder: dec}
+		err := v.DecodeField(once, flatten(start.Name))
+		if err != nil {
+			return err
+		}
+		if once.calls == 0 {
+			return dec.Decode(nil)
+		}
+	case codec.TextAppender, *[]byte, *string:
+		return dec.Decode(v)
+	default:
+		return dec.Decode(nil)
 	}
 
-	// TODO: check Decode call count and call err = dec.Decode(nil)
-	if once.calls == 0 {
-		err = dec.Decode(nil)
-	}
-
-	// Restore state
-	dec.e = saved
-
-	return err
+	return nil
 }
 
 func flatten(name xml.Name) string {
