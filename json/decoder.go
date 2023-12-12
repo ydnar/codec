@@ -41,7 +41,7 @@ func (dec *Decoder) decodeToken(v any) error {
 		return err
 	}
 	if tok == nil {
-		_, err := codec.DecodeNil(v)
+		_, err := codec.UnmarshalNil(v)
 		return err
 	}
 

@@ -37,9 +37,9 @@ type ScalarUnmarshaler[T Scalar] interface {
 	UnmarshalScalar(T) error
 }
 
-// NilDecoder is the interface implemented by types that can decode from nil.
-type NilDecoder interface {
-	DecodeNil() error
+// NilUnmarshaler is the interface implemented by types that can unmarshal from nil.
+type NilUnmarshaler interface {
+	UnmarshalNil() error
 }
 
 // BoolDecoder is the interface implemented by types that can decode from a bool.

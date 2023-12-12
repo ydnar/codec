@@ -6,11 +6,11 @@ import (
 	"unsafe"
 )
 
-// DecodeNil calls DecodeNil on v if v implements NilDecoder.
-// Returns true if v implements NilDecoder and a decode was attempted.
-func DecodeNil(v any) (bool, error) {
-	if v, ok := v.(NilDecoder); ok {
-		return true, v.DecodeNil()
+// UnmarshalNil calls UnmarshalNil on v if v implements NilUnmarshaler.
+// Returns true if v implements NilUnmarshaler.
+func UnmarshalNil(v any) (bool, error) {
+	if v, ok := v.(NilUnmarshaler); ok {
+		return true, v.UnmarshalNil()
 	}
 	return false, nil
 }
