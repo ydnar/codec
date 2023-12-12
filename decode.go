@@ -146,7 +146,7 @@ func UnmarshalDecimal(v any, n string) (bool, error) {
 	return false, nil
 }
 
-func unmarshalSignedDecimal[T Signed](v *T, n string) (bool, error) {
+func unmarshalSignedDecimal[T int | int8 | int16 | int32 | int64](v *T, n string) (bool, error) {
 	i, err := strconv.ParseInt(n, 10, int(unsafe.Sizeof(*v)))
 	if err != nil {
 		return true, err
@@ -155,7 +155,7 @@ func unmarshalSignedDecimal[T Signed](v *T, n string) (bool, error) {
 	return true, nil
 }
 
-func unmarshalUnsignedDecimal[T Unsigned](v *T, n string) (bool, error) {
+func unmarshalUnsignedDecimal[T uint | uint8 | uint16 | uint32 | uint64](v *T, n string) (bool, error) {
 	i, err := strconv.ParseUint(n, 10, int(unsafe.Sizeof(*v)))
 	if err != nil {
 		return true, err
@@ -164,7 +164,7 @@ func unmarshalUnsignedDecimal[T Unsigned](v *T, n string) (bool, error) {
 	return true, nil
 }
 
-func unmarshalFloatDecimal[T Float](v *T, n string) (bool, error) {
+func unmarshalFloatDecimal[T float32 | float64](v *T, n string) (bool, error) {
 	f, err := strconv.ParseFloat(n, int(unsafe.Sizeof(*v)))
 	if err != nil {
 		return true, err

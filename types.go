@@ -37,6 +37,12 @@ type ScalarUnmarshaler[T Scalar] interface {
 	UnmarshalScalar(T) error
 }
 
+// Scalar is the set of types supported by [ScalarMarshaler] and [ScalarUnmarshaler].
+// See https://github.com/golang/go/issues/56235 for more information.
+type Scalar interface {
+	bool | int64 | uint64 | float64 | complex128
+}
+
 // NilUnmarshaler is the interface implemented by types that can unmarshal from nil.
 type NilUnmarshaler interface {
 	UnmarshalNil() error
