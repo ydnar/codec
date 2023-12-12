@@ -29,7 +29,7 @@ func DecodeValue(v any, val string) (bool, error) {
 	if ok, err := UnmarshalBoolString(v, val); ok {
 		return ok, err
 	}
-	if ok, err := DecodeNumber(v, val); ok {
+	if ok, err := UnmarshalDecimal(v, val); ok {
 		return ok, err
 	}
 	return false, nil
@@ -71,97 +71,82 @@ func UnmarshalBoolString(v any, s string) (bool, error) {
 	return false, nil
 }
 
-// DecodeNumber decodes a number encoded as a string into v.
-// The following core types are supported:
-// int8, uint8, int16, uint16, int32, uint32, int64, uint64, float32, and float64.
-// Pointers to the above types are also supported, and will be allocated if necessary.
-// The interface types IntDecoder, and FloatDecoder are also supported.
-// Returns true if v matches a known type and a decode was attempted.
-func DecodeNumber(v any, n string) (bool, error) {
+// UnmarshalDecimal decodes a string containing a base-10 number into v.
+// The following types for v are supported:
+// int8, uint8, int16, uint16, int32, uint32, int64, uint64, float32, float64,
+// and ScalarUnmarshaler[int64 | int64 | float32 | float64].
+//
+// Returns true if v matches a known type.
+//
+// TODO: support [complex128]?
+func UnmarshalDecimal(v any, n string) (bool, error) {
 	switch v := v.(type) {
+	case nil:
+		return false, nil
+
 	case *int:
-		return decodeSignedValue(v, n)
+		return unmarshalSignedDecimal(v, n)
 	case **int:
-		return decodeSignedValue(Must(v), n)
+		return unmarshalSignedDecimal(Must(v), n)
 	case *int8:
-		return decodeSignedValue(v, n)
+		return unmarshalSignedDecimal(v, n)
 	case **int8:
-		return decodeSignedValue(Must(v), n)
+		return unmarshalSignedDecimal(Must(v), n)
 	case *int16:
-		return decodeSignedValue(v, n)
+		return unmarshalSignedDecimal(v, n)
 	case **int16:
-		return decodeSignedValue(Must(v), n)
+		return unmarshalSignedDecimal(Must(v), n)
 	case *int32:
-		return decodeSignedValue(v, n)
+		return unmarshalSignedDecimal(v, n)
 	case **int32:
-		return decodeSignedValue(Must(v), n)
+		return unmarshalSignedDecimal(Must(v), n)
 	case *int64:
-		return decodeSignedValue(v, n)
+		return unmarshalSignedDecimal(v, n)
 	case **int64:
-		return decodeSignedValue(Must(v), n)
+		return unmarshalSignedDecimal(Must(v), n)
 
 	case *uint:
-		return decodeUnsignedValue(v, n)
+		return unmarshalUnsignedDecimal(v, n)
 	case **uint:
-		return decodeUnsignedValue(Must(v), n)
+		return unmarshalUnsignedDecimal(Must(v), n)
 	case *uint8:
-		return decodeUnsignedValue(v, n)
+		return unmarshalUnsignedDecimal(v, n)
 	case **uint8:
-		return decodeUnsignedValue(Must(v), n)
+		return unmarshalUnsignedDecimal(Must(v), n)
 	case *uint16:
-		return decodeUnsignedValue(v, n)
+		return unmarshalUnsignedDecimal(v, n)
 	case **uint16:
-		return decodeUnsignedValue(Must(v), n)
+		return unmarshalUnsignedDecimal(Must(v), n)
 	case *uint32:
-		return decodeUnsignedValue(v, n)
+		return unmarshalUnsignedDecimal(v, n)
 	case **uint32:
-		return decodeUnsignedValue(Must(v), n)
+		return unmarshalUnsignedDecimal(Must(v), n)
 	case *uint64:
-		return decodeUnsignedValue(v, n)
+		return unmarshalUnsignedDecimal(v, n)
 	case **uint64:
-		return decodeUnsignedValue(Must(v), n)
+		return unmarshalUnsignedDecimal(Must(v), n)
 
 	case *float32:
-		return decodeFloatValue(v, n)
+		return unmarshalFloatDecimal(v, n)
 	case **float32:
-		return decodeFloatValue(Must(v), n)
+		return unmarshalFloatDecimal(Must(v), n)
 	case *float64:
-		return decodeFloatValue(v, n)
+		return unmarshalFloatDecimal(v, n)
 	case **float64:
-		return decodeFloatValue(Must(v), n)
+		return unmarshalFloatDecimal(Must(v), n)
 
-	case IntDecoder[int]:
-		return decodeSigned(v, n)
-	case IntDecoder[int8]:
-		return decodeSigned(v, n)
-	case IntDecoder[int16]:
-		return decodeSigned(v, n)
-	case IntDecoder[int32]:
-		return decodeSigned(v, n)
-	case IntDecoder[int64]:
-		return decodeSigned(v, n)
-
-	case IntDecoder[uint]:
-		return decodeUnsigned(v, n)
-	case IntDecoder[uint8]:
-		return decodeUnsigned(v, n)
-	case IntDecoder[uint16]:
-		return decodeUnsigned(v, n)
-	case IntDecoder[uint32]:
-		return decodeUnsigned(v, n)
-	case IntDecoder[uint64]:
-		return decodeUnsigned(v, n)
-
-	case FloatDecoder[float32]:
-		return decodeFloat(v, n)
-	case FloatDecoder[float64]:
-		return decodeFloat(v, n)
+	case ScalarUnmarshaler[int64]:
+		return unmarshalScalarInt64(v, n)
+	case ScalarUnmarshaler[uint64]:
+		return unmarshalScalarUint64(v, n)
+	case ScalarUnmarshaler[float64]:
+		return unmarshalScalarFloat64(v, n)
 	}
 
 	return false, nil
 }
 
-func decodeSignedValue[T Signed](v *T, n string) (bool, error) {
+func unmarshalSignedDecimal[T Signed](v *T, n string) (bool, error) {
 	i, err := strconv.ParseInt(n, 10, int(unsafe.Sizeof(*v)))
 	if err != nil {
 		return true, err
@@ -170,16 +155,7 @@ func decodeSignedValue[T Signed](v *T, n string) (bool, error) {
 	return true, nil
 }
 
-func decodeSigned[T Signed](v IntDecoder[T], n string) (bool, error) {
-	var x T
-	i, err := strconv.ParseInt(n, 10, int(unsafe.Sizeof(x))*8)
-	if err != nil {
-		return true, err
-	}
-	return true, v.DecodeInt(T(i))
-}
-
-func decodeUnsignedValue[T Unsigned](v *T, n string) (bool, error) {
+func unmarshalUnsignedDecimal[T Unsigned](v *T, n string) (bool, error) {
 	i, err := strconv.ParseUint(n, 10, int(unsafe.Sizeof(*v)))
 	if err != nil {
 		return true, err
@@ -188,16 +164,7 @@ func decodeUnsignedValue[T Unsigned](v *T, n string) (bool, error) {
 	return true, nil
 }
 
-func decodeUnsigned[T Unsigned](v IntDecoder[T], n string) (bool, error) {
-	var x T
-	i, err := strconv.ParseUint(n, 10, int(unsafe.Sizeof(x))*8)
-	if err != nil {
-		return true, err
-	}
-	return true, v.DecodeInt(T(i))
-}
-
-func decodeFloatValue[T Float](v *T, n string) (bool, error) {
+func unmarshalFloatDecimal[T Float](v *T, n string) (bool, error) {
 	f, err := strconv.ParseFloat(n, int(unsafe.Sizeof(*v)))
 	if err != nil {
 		return true, err
@@ -206,13 +173,28 @@ func decodeFloatValue[T Float](v *T, n string) (bool, error) {
 	return true, nil
 }
 
-func decodeFloat[T Float](v FloatDecoder[T], n string) (bool, error) {
-	var x T
-	f, err := strconv.ParseFloat(n, int(unsafe.Sizeof(x))*8)
+func unmarshalScalarInt64(v ScalarUnmarshaler[int64], n string) (bool, error) {
+	i, err := strconv.ParseInt(n, 10, 64)
 	if err != nil {
 		return true, err
 	}
-	return true, v.DecodeFloat(T(f))
+	return true, v.UnmarshalScalar(i)
+}
+
+func unmarshalScalarUint64(v ScalarUnmarshaler[uint64], n string) (bool, error) {
+	i, err := strconv.ParseUint(n, 10, 64)
+	if err != nil {
+		return true, err
+	}
+	return true, v.UnmarshalScalar(i)
+}
+
+func unmarshalScalarFloat64(v ScalarUnmarshaler[float64], n string) (bool, error) {
+	f, err := strconv.ParseFloat(n, 64)
+	if err != nil {
+		return true, err
+	}
+	return true, v.UnmarshalScalar(f)
 }
 
 // DecodeString decodes s into v. The following types are supported:

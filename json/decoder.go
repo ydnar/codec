@@ -50,7 +50,7 @@ func (dec *Decoder) decodeToken(v any) error {
 		_, err := codec.UnmarshalBool(v, tok)
 		return err
 	case json.Number:
-		if ok, err := codec.DecodeNumber(v, string(tok)); ok {
+		if ok, err := codec.UnmarshalDecimal(v, string(tok)); ok {
 			return err
 		}
 		if ok, err := codec.DecodeString(v, string(tok)); ok {
