@@ -33,24 +33,18 @@ func (c *sliceCodec[S, E]) DecodeElement(dec Decoder, i int) error {
 	if err != nil {
 		return err
 	}
-	Resize(c.S, i)
+	Expand(c.S, i+1)
 	if v != (*c.S)[i] {
 		(*c.S)[i] = v
 	}
 	return nil
 }
 
-// Resize resizes the slice s to at least len(s) == i+1,
-// returning the value at s[i].
-func Resize[S ~[]E, E any](s *S, i int) E {
-	var e E
-	if i < 0 {
-		return e
+// Expand ensures len(s) is greater or equal to size.
+func Expand[S ~[]E, E any](s *S, size int) {
+	if size > len(*s) {
+		*s = append(*s, make([]E, size-len(*s))...)
 	}
-	if i >= len(*s) {
-		*s = append(*s, make([]E, i+1-len(*s))...)
-	}
-	return (*s)[i]
 }
 
 // Map returns an FieldDecoder for map m.

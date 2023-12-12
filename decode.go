@@ -222,7 +222,7 @@ func UnmarshalString(v any, s string) (bool, error) {
 func UnmarshalText(v any, text []byte) (bool, error) {
 	switch v := v.(type) {
 	case *[]byte:
-		Resize(v, len(text))
+		Expand(v, len(text))
 		copy(*v, text)
 		return true, nil
 	case *string:
@@ -267,7 +267,7 @@ func AppendText(v any, text []byte) (bool, error) {
 func UnmarshalBinary(v any, data []byte) (bool, error) {
 	switch v := v.(type) {
 	case *[]byte:
-		Resize(v, len(data))
+		Expand(v, len(data))
 		copy(*v, data)
 		return true, nil
 	case encoding.BinaryUnmarshaler:
