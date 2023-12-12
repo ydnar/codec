@@ -275,13 +275,3 @@ func UnmarshalBinary(v any, data []byte) (bool, error) {
 	}
 	return false, nil
 }
-
-// DecodeSlice adapts slice s into an ElementDecoder and decodes it.
-func DecodeSlice[S ~[]E, E comparable](dec Decoder, s *S) error {
-	return dec.Decode(Slice(s))
-}
-
-// DecodeMap adapts a string-keyed map m into a FieldDecoder and decodes it.
-func DecodeMap[M ~map[K]V, K ~string, V any](dec Decoder, m *M) error {
-	return dec.Decode(Map(m))
-}

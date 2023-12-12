@@ -14,6 +14,18 @@ func Must[T any](p **T) *T {
 	return *p
 }
 
+// Expand ensures len(s) is greater or equal to size.
+func Expand[S ~[]E, E any](s *S, size int) {
+	if size > len(*s) {
+		*s = append(*s, make([]E, size-len(*s))...)
+	}
+}
+
+// DecodeSlice adapts slice s into an ElementDecoder and decodes it.
+func DecodeSlice[S ~[]E, E comparable](dec Decoder, s *S) error {
+	return dec.Decode(Slice(s))
+}
+
 // Slice returns an ElementDecoder for slice s.
 func Slice[S ~[]E, E comparable](s *S) ElementDecoder {
 	return &sliceCodec[S, E]{S: s}
@@ -40,11 +52,9 @@ func (c *sliceCodec[S, E]) DecodeElement(dec Decoder, i int) error {
 	return nil
 }
 
-// Expand ensures len(s) is greater or equal to size.
-func Expand[S ~[]E, E any](s *S, size int) {
-	if size > len(*s) {
-		*s = append(*s, make([]E, size-len(*s))...)
-	}
+// DecodeMap adapts a string-keyed map m into a FieldDecoder and decodes it.
+func DecodeMap[M ~map[K]V, K ~string, V any](dec Decoder, m *M) error {
+	return dec.Decode(Map(m))
 }
 
 // Map returns an FieldDecoder for map m.
