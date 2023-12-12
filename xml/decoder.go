@@ -43,7 +43,7 @@ func (dec *Decoder) Decode(v any) error {
 func (dec *Decoder) decode(v any) error {
 	// Decode single attribute, if set.
 	if dec.attr != (xml.Attr{}) {
-		_, err := codec.DecodeValue(v, dec.attr.Value)
+		_, err := codec.UnmarshalValue(v, dec.attr.Value)
 		return err
 	}
 

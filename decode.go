@@ -15,15 +15,15 @@ func UnmarshalNil(v any) (bool, error) {
 	return false, nil
 }
 
-// DecodeValue decodes a string value into v by calling
-// DecodeString, DecodeBytes, DecodeBoolString, and DecodeNumber,
-// returning after the first attempted decode.
-// Returns false, nil if unable to decode into v.
-func DecodeValue(v any, val string) (bool, error) {
+// UnmarshalValue unmarshals a string value into v.
+// It calls [UnmarshalString], [UnmarshalText], [UnmarshalBoolString], and [UnmarshalDecimal],
+// returning after the first matching unmarshaler.
+// Returns false, nil if unable to unmarshal val into v.
+func UnmarshalValue(v any, val string) (bool, error) {
 	if ok, err := UnmarshalString(v, val); ok {
 		return ok, err
 	}
-	if ok, err := UnmarshalBinary(v, []byte(val)); ok {
+	if ok, err := UnmarshalText(v, []byte(val)); ok {
 		return ok, err
 	}
 	if ok, err := UnmarshalBoolString(v, val); ok {
@@ -198,7 +198,7 @@ func unmarshalScalarFloat64(v ScalarUnmarshaler[float64], n string) (bool, error
 }
 
 // UnmarshalString unmarshals string s into v.
-// Supported types of v: *string, **string, and StringUnmarshaler.
+// Supported types of v: *string, **string, [StringUnmarshaler], and [encoding.TextUnmarshaler].
 // Returns true if v is a supported type.
 func UnmarshalString(v any, s string) (bool, error) {
 	switch v := v.(type) {
@@ -210,21 +210,8 @@ func UnmarshalString(v any, s string) (bool, error) {
 		return true, nil
 	case StringUnmarshaler:
 		return true, v.UnmarshalString(s)
-	}
-	return false, nil
-}
-
-// UnmarshalBinary unmarshals binary data into v.
-// Supported types of v: *[]byte, or encoding.BinaryUnmarshaler.
-// Returns true if v is a supported type.
-func UnmarshalBinary(v any, data []byte) (bool, error) {
-	switch v := v.(type) {
-	case *[]byte:
-		Resize(v, len(data))
-		copy(*v, data)
-		return true, nil
-	case encoding.BinaryUnmarshaler:
-		return true, v.UnmarshalBinary(data)
+	case encoding.TextUnmarshaler:
+		return true, v.UnmarshalText([]byte(s))
 	}
 	return false, nil
 }
@@ -270,6 +257,21 @@ func AppendText(v any, text []byte) (bool, error) {
 		return true, v.AppendText(text)
 	case encoding.TextUnmarshaler:
 		return true, v.UnmarshalText(text)
+	}
+	return false, nil
+}
+
+// UnmarshalBinary unmarshals binary data into v.
+// Supported types of v: *[]byte, or [encoding.BinaryUnmarshaler].
+// Returns true if v is a supported type.
+func UnmarshalBinary(v any, data []byte) (bool, error) {
+	switch v := v.(type) {
+	case *[]byte:
+		Resize(v, len(data))
+		copy(*v, data)
+		return true, nil
+	case encoding.BinaryUnmarshaler:
+		return true, v.UnmarshalBinary(data)
 	}
 	return false, nil
 }

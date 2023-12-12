@@ -56,16 +56,9 @@ func (dec *Decoder) decodeToken(v any) error {
 		if ok, err := codec.UnmarshalString(v, string(tok)); ok {
 			return err
 		}
-		if ok, err := codec.UnmarshalBinary(v, []byte(tok)); ok {
-			return err
-		}
 	case string:
-		if ok, err := codec.UnmarshalString(v, string(tok)); ok {
-			return err
-		}
-		if ok, err := codec.UnmarshalBinary(v, []byte(tok)); ok {
-			return err
-		}
+		_, err := codec.UnmarshalValue(v, string(tok))
+		return err
 	case json.Delim:
 		switch tok {
 		case '{':
