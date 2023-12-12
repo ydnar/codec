@@ -14,7 +14,7 @@ func Must[T any](p **T) *T {
 	return *p
 }
 
-// Expand ensures len(s) is greater or equal to size.
+// Expand ensures the length of slice s is greater than or equal to size.
 func Expand[S ~[]E, E any](s *S, size int) {
 	if size > len(*s) {
 		*s = append(*s, make([]E, size-len(*s))...)
