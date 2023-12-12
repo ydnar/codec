@@ -36,8 +36,8 @@ func DecodeValue(v any, val string) (bool, error) {
 }
 
 // UnmarshalBool unmarshals a bool into v.
-// Supported types of v are *bool, **bool, and ScalarUnmarshaler[bool].
-// Returns true if v matches a known type.
+// Supported types of v: *bool, **bool, and ScalarUnmarshaler[bool].
+// Returns true if v matches a supported type.
 func UnmarshalBool(v any, b bool) (bool, error) {
 	switch v := v.(type) {
 	case *bool:
