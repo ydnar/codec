@@ -88,7 +88,7 @@ func TestDecoderText(t *testing.T) {
 
 type Text []byte
 
-func (t *Text) DecodeText(text []byte) error {
+func (t *Text) AppendText(text []byte) error {
 	*t = append(*t, text...)
 	return nil
 }

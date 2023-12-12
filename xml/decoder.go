@@ -72,7 +72,7 @@ func (dec *Decoder) decode(v any) error {
 		switch tok := tok.(type) {
 		// TODO: handle PIs, chardata, CDATA, etc.
 		case xml.CharData:
-			_, err := codec.DecodeText(v, tok)
+			_, err := codec.AppendText(v, tok)
 			if err != nil {
 				return err
 			}

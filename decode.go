@@ -23,7 +23,7 @@ func DecodeValue(v any, val string) (bool, error) {
 	if ok, err := UnmarshalString(v, val); ok {
 		return ok, err
 	}
-	if ok, err := DecodeBytes(v, []byte(val)); ok {
+	if ok, err := UnmarshalBinary(v, []byte(val)); ok {
 		return ok, err
 	}
 	if ok, err := UnmarshalBoolString(v, val); ok {
@@ -214,27 +214,25 @@ func UnmarshalString(v any, s string) (bool, error) {
 	return false, nil
 }
 
-// DecodeBytes decodes data into v. The following types are supported:
-// []byte, BytesDecoder, encoding.BinaryUnmarshaler, and encoding.TextUnmarshaler.
-func DecodeBytes(v any, data []byte) (bool, error) {
+// UnmarshalBinary unmarshals binary data into v.
+// Supported types of v: *[]byte, or encoding.BinaryUnmarshaler.
+// Returns true if v is a supported type.
+func UnmarshalBinary(v any, data []byte) (bool, error) {
 	switch v := v.(type) {
 	case *[]byte:
 		Resize(v, len(data))
 		copy(*v, data)
 		return true, nil
-	case BytesDecoder:
-		return true, v.DecodeBytes(data)
 	case encoding.BinaryUnmarshaler:
 		return true, v.UnmarshalBinary(data)
-	case encoding.TextUnmarshaler:
-		return true, v.UnmarshalText(data)
 	}
 	return false, nil
 }
 
-// DecodeText decodes text into v. The following types are supported:
-// []byte, *string, **string, TextDecoder, and encoding.TextUnmarshaler.
-func DecodeText(v any, text []byte) (bool, error) {
+// UnmarshalText unmarshals text into v.
+// Supported types of v: *[]byte, *string, **string, or [encoding.TextUnmarshaler].
+// If v is a byte slice or string, v will be set to text.
+func UnmarshalText(v any, text []byte) (bool, error) {
 	switch v := v.(type) {
 	case *[]byte:
 		Resize(v, len(text))
@@ -247,16 +245,16 @@ func DecodeText(v any, text []byte) (bool, error) {
 		s := string(text)
 		*v = &s
 		return true, nil
-	case TextDecoder:
-		return true, v.DecodeText(text)
 	case encoding.TextUnmarshaler:
 		return true, v.UnmarshalText(text)
 	}
 	return false, nil
 }
 
-// AppendText appends text onto v. The following types are supported:
-// []byte, *string, **string, TextDecoder, and encoding.TextUnmarshaler.
+// AppendText appends text onto v.
+// Unlike [UnmarshalText], this will append to, rather than replace the value of v.
+//
+// Supported types of v: *[]byte, *string, **string, [TextAppender], and [encoding.TextUnmarshaler].
 func AppendText(v any, text []byte) (bool, error) {
 	switch v := v.(type) {
 	case *[]byte:
@@ -268,8 +266,8 @@ func AppendText(v any, text []byte) (bool, error) {
 	case **string:
 		*Must(v) += string(text)
 		return true, nil
-	case TextDecoder:
-		return true, v.DecodeText(text)
+	case TextAppender:
+		return true, v.AppendText(text)
 	case encoding.TextUnmarshaler:
 		return true, v.UnmarshalText(text)
 	}

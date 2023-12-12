@@ -53,21 +53,9 @@ type StringUnmarshaler interface {
 	UnmarshalString(string) error
 }
 
-// TextDecoder is the interface implemented by types that can decode text from a byte slice.
-type TextDecoder interface {
-	DecodeText([]byte) error
-}
-
-// IntDecoder is the interface implemented by types that can decode
-// from an integer value. See [Integer] for the list of supported types.
-type IntDecoder[T Integer] interface {
-	DecodeInt(T) error
-}
-
-// FloatDecoder is the interface implemented by types that can decode
-// from a floating-point value. See [Float] for the list of supported types.
-type FloatDecoder[T Float] interface {
-	DecodeFloat(T) error
+// TextAppender is the interface implemented by types that can append text data.
+type TextAppender interface {
+	AppendText([]byte) error
 }
 
 // ElementDecoder is the interface implemented by types that can decode
