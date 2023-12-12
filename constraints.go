@@ -19,3 +19,9 @@ type Integer interface {
 type Float interface {
 	float32 | float64
 }
+
+// Scalar is the set of types supported by [ScalarMarshaler] and [ScalarUnmarshaler].
+// See https://github.com/golang/go/issues/56235 for more information.
+type Scalar interface {
+	bool | int64 | uint64 | float64 | complex128
+}

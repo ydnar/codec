@@ -25,6 +25,18 @@ type Decoder interface {
 	Decode(v any) error
 }
 
+// ScalarMarshaler is the interface implemented by types that can marshal
+// to a [Scalar] value. See https://github.com/golang/go/issues/56235 for more information.
+type ScalarMarshaler[T Scalar] interface {
+	MarshalScalar() (T, error)
+}
+
+// ScalarMarshaler is the interface implemented by types that can unmarshal
+// from a [Scalar] value. See https://github.com/golang/go/issues/56235 for more information.
+type ScalarUnmarshaler[T Scalar] interface {
+	UnmarshalScalar(T) error
+}
+
 // NilDecoder is the interface implemented by types that can decode from nil.
 type NilDecoder interface {
 	DecodeNil() error
