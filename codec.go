@@ -20,9 +20,57 @@ func Resolve(v any, resolvers ...Resolver) Codec {
 	return nil
 }
 
-// Decoder is the interface implemented by types that can decode data into Go type(s).
+// Decoder is the common interface implemented by decoders for a specific serialization format.
 type Decoder interface {
 	Decode(v any) error
+}
+
+// Encoder is the common interface implemented by encoders for a specific serialization format.
+type Encoder interface {
+	Encode(v any) error
+}
+
+func EncodeStruct(enc Encoder, name string) StructEncoder {
+	return nil
+}
+
+type StructEncoder interface {
+	Encode(name string, v any) error
+}
+
+func EncodeSeq[T any](enc Encoder) SeqEncoder[T] {
+	return nil
+}
+
+type SeqEncoder[T any] interface {
+	Encode(v T) error
+}
+
+func EncodeMap[K comparable, V any](enc Encoder) MapEncoder[K, V] {
+	return nil
+}
+
+type MapEncoder[K comparable, V any] interface {
+	Encode(k K, v V) error
+}
+type FieldEncoder interface {
+	EncodeField(name string, v any) error
+}
+
+type FieldsMarshaler interface {
+	MarshalFields(enc FieldEncoder) error
+}
+
+type ElementsMarshaler interface {
+	MarshalElements(enc Encoder) error
+}
+
+type Marshaler interface {
+	MarshalCodec(Encoder) error
+}
+
+type Unmarshaler interface {
+	UnmarshalCodec(Decoder) error
 }
 
 // ScalarMarshaler is the interface implemented by types that can marshal
@@ -70,8 +118,26 @@ type ElementDecoder interface {
 	DecodeElement(Decoder, int) error
 }
 
+type ElementUnmarshaler interface {
+	UnmarshalElement(Decoder, int) error
+}
+
 // FieldDecoder is the interface implemented by types that can decode
 // fields or attributes, such as structs or string-keyed maps.
 type FieldDecoder interface {
 	DecodeField(Decoder, string) error
+}
+
+// FieldUnmarshaler is the interface implemented by types that can
+// unmarshal fields or attributes, such as structs or string-keyed maps.
+type FieldUnmarshaler interface {
+	UnmarshalField(Decoder, string) error
+}
+
+type FieldUnmarshaler2[K Key] interface {
+	UnmarshalField(dec Decoder, key K) error
+}
+
+type Key interface {
+	Scalar | string
 }

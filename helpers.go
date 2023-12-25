@@ -52,6 +52,17 @@ func (c *sliceCodec[S, E]) DecodeElement(dec Decoder, i int) error {
 	return nil
 }
 
+func (c *sliceCodec[S, E]) MarshalEncode(enc Encoder) error {
+	e := enc.EncodeSequence(len(*c.S))
+	for i := range *c.S {
+		err := e.Encode((*c.S)[i])
+		if err != nil {
+			return err
+		}
+	}
+	return e.End()
+}
+
 // DecodeMap adapts a string-keyed map m into a [FieldDecoder] and decodes it.
 func DecodeMap[M ~map[K]V, K ~string, V any](dec Decoder, m *M) error {
 	return dec.Decode(Map(m))
