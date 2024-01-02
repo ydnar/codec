@@ -3,6 +3,7 @@ package codec
 import (
 	"cmp"
 	"slices"
+	"unsafe"
 )
 
 // Must ensures that the pointer at *p is non-nil.
@@ -21,51 +22,41 @@ func Expand[S ~[]E, E any](s *S, size int) {
 	}
 }
 
-// DecodeSlice adapts slice s into an [ElementDecoder] and decodes it.
-func DecodeSlice[S ~[]E, E comparable](dec Decoder, s *S) error {
-	return dec.Decode(Slice(s))
+// Slice returns a [SliceCodec] for slice s.
+func Slice[S ~[]E, E any](s *S) SliceCodec {
+	return (*sliceCodec[E])(unsafe.Pointer(s))
 }
 
-// Slice returns an [ElementDecoder] for slice s.
-func Slice[S ~[]E, E comparable](s *S) ElementDecoder {
-	return &sliceCodec[S, E]{S: s}
+type SliceCodec interface {
 }
 
 // sliceCodec is an implementation of [ElementDecoder] for an arbitrary slice.
-type sliceCodec[S ~[]E, E comparable] struct{ S *S }
+type sliceCodec[E any] []E
 
-// DecodeElement implements the [ElementDecoder] interface,
+// UnmarshalElement implements the [ElementUnmarshaler] interface,
 // dynamically resizing the slice if necessary.
-func (c *sliceCodec[S, E]) DecodeElement(dec Decoder, i int) error {
+func (c *sliceCodec[E]) UnmarshalElement(dec Decoder, i int) error {
 	var v E
-	if i >= 0 && i < len(*c.S) {
-		v = (*c.S)[i]
+	if i >= 0 && i < len(*c) {
+		v = (*c)[i]
 	}
 	err := dec.Decode(&v)
 	if err != nil {
 		return err
 	}
-	Expand(c.S, i+1)
-	if v != (*c.S)[i] {
-		(*c.S)[i] = v
-	}
+	Expand(c, i+1)
+	(*c)[i] = v
 	return nil
 }
 
-func (c *sliceCodec[S, E]) MarshalEncode(enc Encoder) error {
-	e := enc.EncodeSequence(len(*c.S))
-	for i := range *c.S {
-		err := e.Encode((*c.S)[i])
+func (c *sliceCodec[E]) MarshalSeq(enc Encoder) error {
+	for i := range *c {
+		err := enc.Encode((*c)[i])
 		if err != nil {
 			return err
 		}
 	}
-	return e.End()
-}
-
-// DecodeMap adapts a string-keyed map m into a [FieldDecoder] and decodes it.
-func DecodeMap[M ~map[K]V, K ~string, V any](dec Decoder, m *M) error {
-	return dec.Decode(Map(m))
+	return nil
 }
 
 // Map returns an [FieldDecoder] for map m.

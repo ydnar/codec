@@ -30,7 +30,7 @@ type Encoder interface {
 	Encode(v any) error
 }
 
-func EncodeStruct(enc Encoder, name string) StructEncoder {
+func EncodeStruct[T any](enc Encoder, v T) error {
 	return nil
 }
 
@@ -38,7 +38,7 @@ type StructEncoder interface {
 	Encode(name string, v any) error
 }
 
-func EncodeSeq[T any](enc Encoder) SeqEncoder[T] {
+func EncodeSeq[T any](enc Encoder, v T) error {
 	return nil
 }
 
@@ -46,13 +46,18 @@ type SeqEncoder[T any] interface {
 	Encode(v T) error
 }
 
-func EncodeMap[K comparable, V any](enc Encoder) MapEncoder[K, V] {
+func EncodeMap[M ~map[K]V | any, K comparable, V any](enc Encoder, v M) error {
 	return nil
+}
+
+type MapMarshaler[K comparable, V any] interface {
+	MarshalMap(enc MapEncoder[K, V]) error
 }
 
 type MapEncoder[K comparable, V any] interface {
 	Encode(k K, v V) error
 }
+
 type FieldEncoder interface {
 	EncodeField(name string, v any) error
 }
@@ -66,11 +71,11 @@ type ElementsMarshaler interface {
 }
 
 type Marshaler interface {
-	MarshalCodec(Encoder) error
+	Marshal(Encoder) error
 }
 
 type Unmarshaler interface {
-	UnmarshalCodec(Decoder) error
+	Unmarshal(Decoder) error
 }
 
 // ScalarMarshaler is the interface implemented by types that can marshal

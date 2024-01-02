@@ -22,7 +22,7 @@ func (enc *Encoder) Encode(v any) error {
 	case nil:
 		return nil
 	case codec.Marshaler:
-		return v.MarshalCodec(enc)
+		return v.Marshal(enc)
 	}
 	return nil
 }
