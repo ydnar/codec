@@ -22,20 +22,37 @@ func Expand[S ~[]E, E any](s *S, size int) {
 	}
 }
 
-// Slice returns a [SliceCodec] for slice s.
+// Slice returns a [Seq] for slice s.
+// If m implements Seq, it will be returned directly.
 func Slice[S ~[]E, E any](s *S) SliceCodec {
+	if s, ok := any(s).(SliceCodec); ok {
+		return s
+	}
 	return (*sliceCodec[E])(unsafe.Pointer(s))
 }
 
 type SliceCodec interface {
+	Marshal(enc Encoder) error
+	UnmarshalSeq(dec Decoder, i int) error
 }
 
-// sliceCodec is an implementation of [ElementDecoder] for an arbitrary slice.
+// sliceCodec is an implementation of [Marshaler] and [SeqUnmarshaler] for an arbitrary slice.
 type sliceCodec[E any] []E
 
-// UnmarshalElement implements the [ElementUnmarshaler] interface,
+func (c *sliceCodec[E]) Marshal(enc Encoder) error {
+	e := EncodeSlice(enc)
+	for i := range *c {
+		err := e.Encode((*c)[i])
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// UnmarshalSeq implements the [SeqUnmarshaler] interface,
 // dynamically resizing the slice if necessary.
-func (c *sliceCodec[E]) UnmarshalElement(dec Decoder, i int) error {
+func (c *sliceCodec[E]) UnmarshalSeq(dec Decoder, i int) error {
 	var v E
 	if i >= 0 && i < len(*c) {
 		v = (*c)[i]
@@ -49,9 +66,27 @@ func (c *sliceCodec[E]) UnmarshalElement(dec Decoder, i int) error {
 	return nil
 }
 
-func (c *sliceCodec[E]) MarshalSeq(enc Encoder) error {
-	for i := range *c {
-		err := enc.Encode((*c)[i])
+// Map returns a [MapCodec] for map m.
+// If m implements MapCodec, it will be returned directly.
+func Map[M ~map[K]V, K ~string, V any](m *M) MapCodec {
+	if f, ok := any(m).(MapCodec); ok {
+		return f
+	}
+	return &mapCodec[M, K, V]{m}
+}
+
+type MapCodec interface {
+	Marshal(enc Encoder) error
+	UnmarshalField(dec Decoder, name string) error
+}
+
+// mapCodec is an implementation of [MapCodec] for a map with string keys.
+type mapCodec[M ~map[K]V, K ~string, V any] struct{ M *M }
+
+func (c *mapCodec[M, K, V]) Marshal(enc Encoder) error {
+	e := EncodeStruct(enc)
+	for k, v := range *c.M {
+		err := e.Encode(string(k), v)
 		if err != nil {
 			return err
 		}
@@ -59,17 +94,9 @@ func (c *sliceCodec[E]) MarshalSeq(enc Encoder) error {
 	return nil
 }
 
-// Map returns an [FieldDecoder] for map m.
-func Map[M ~map[K]V, K ~string, V any](m *M) FieldDecoder {
-	return &mapCodec[M, K, V]{m}
-}
-
-// mapCodec is an implementation of [FieldDecoder] for an arbitrary map with string keys.
-type mapCodec[M ~map[K]V, K ~string, V any] struct{ M *M }
-
-// DecodeField implements the [FieldDecoder] interface,
+// UnmarshalField implements the [FieldUnmarshaler] interface,
 // allocating the underlying map if necessary.
-func (c *mapCodec[M, K, V]) DecodeField(dec Decoder, name string) error {
+func (c *mapCodec[M, K, V]) UnmarshalField(dec Decoder, name string) error {
 	var v V
 	err := dec.Decode(&v)
 	if err != nil {

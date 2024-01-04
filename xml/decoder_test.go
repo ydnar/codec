@@ -27,7 +27,7 @@ type Simple struct {
 	Here bool
 }
 
-func (s *Simple) DecodeField(dec codec.Decoder, name string) error {
+func (s *Simple) UnmarshalField(dec codec.Decoder, name string) error {
 	switch name {
 	case "simple":
 		return dec.Decode(s)
@@ -60,7 +60,7 @@ type Complex struct {
 	Simple Simple
 }
 
-func (c *Complex) DecodeField(dec codec.Decoder, name string) error {
+func (c *Complex) UnmarshalField(dec codec.Decoder, name string) error {
 	switch name {
 	case "complex":
 		return dec.Decode(c)
@@ -93,7 +93,7 @@ func (t *Text) AppendText(text []byte) error {
 	return nil
 }
 
-func (t *Text) DecodeField(dec codec.Decoder, name string) error {
+func (t *Text) UnmarshalField(dec codec.Decoder, name string) error {
 	return dec.Decode(t) // passthrough
 }
 

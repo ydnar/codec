@@ -7,11 +7,8 @@ type AddressBook struct {
 }
 
 func (b *AddressBook) Marshal(enc codec.Encoder) error {
-	return codec.EncodeStruct(enc, b)
-}
-
-func (b *AddressBook) MarshalStruct(enc codec.StructEncoder) error {
-	return enc.Encode("addresses", codec.Slice(&b.Addresses))
+	e := codec.EncodeStruct(enc)
+	return e.Encode("addresses", codec.Slice(&b.Addresses))
 }
 
 type Address struct {
@@ -22,11 +19,12 @@ type Address struct {
 	PostalCode string
 }
 
-func (a *Address) MarshalStruct(enc codec.StructEncoder) error {
-	enc.Encode("name", a.Name)
-	enc.Encode("number", a.Number)
-	enc.Encode("street", a.Street)
-	return enc.Encode("city", a.City)
+func (a *Address) Marshal(enc codec.Encoder) error {
+	e := codec.EncodeStruct(enc)
+	e.Encode("name", a.Name)
+	e.Encode("number", a.Number)
+	e.Encode("street", a.Street)
+	return e.Encode("city", a.City)
 }
 
 type City struct {
@@ -34,9 +32,10 @@ type City struct {
 	State *State
 }
 
-func (c *City) MarshalStruct(enc codec.StructEncoder) error {
-	enc.Encode("name", c.Name)
-	return enc.Encode("state", c.State)
+func (c *City) Marshal(enc codec.Encoder) error {
+	e := codec.EncodeStruct(enc)
+	e.Encode("name", c.Name)
+	return e.Encode("state", c.State)
 }
 
 type State struct {
@@ -44,7 +43,8 @@ type State struct {
 	Code string
 }
 
-func (c *State) MarshalStruct(enc codec.StructEncoder) error {
-	enc.Encode("name", c.Name)
-	return enc.Encode("code", c.Code)
+func (c *State) Marshal(enc codec.Encoder) error {
+	e := codec.EncodeStruct(enc)
+	e.Encode("name", c.Name)
+	return e.Encode("code", c.Code)
 }

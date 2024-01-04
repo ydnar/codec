@@ -49,10 +49,10 @@ func (dec *Decoder) decode(v any) error {
 
 	// Decode start element attributes, if set.
 	if len(dec.e.Attr) != 0 {
-		if d, ok := v.(codec.FieldDecoder); ok {
+		if d, ok := v.(codec.FieldUnmarshaler); ok {
 			for i := 0; i < len(dec.e.Attr); i++ {
 				dec.attr = dec.e.Attr[i]
-				err := d.DecodeField(dec, flatten(dec.attr.Name))
+				err := d.UnmarshalField(dec, flatten(dec.attr.Name))
 				if err != nil {
 					return err
 				}
@@ -98,9 +98,9 @@ func (dec *Decoder) decodeElement(v any, start xml.StartElement) error {
 	dec.e = start
 
 	switch v := v.(type) {
-	case codec.FieldDecoder:
+	case codec.FieldUnmarshaler:
 		once := &onceDecoder{Decoder: dec}
-		err := v.DecodeField(once, flatten(start.Name))
+		err := v.UnmarshalField(once, flatten(start.Name))
 		if err != nil {
 			return err
 		}

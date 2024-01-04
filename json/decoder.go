@@ -76,14 +76,14 @@ func (dec *Decoder) decodeToken(v any) error {
 // decodeObject decodes a JSON object into v.
 // It expects that the initial { token has already been decoded.
 func (dec *Decoder) decodeObject(v any) error {
-	if d, ok := v.(codec.FieldDecoder); ok {
+	if d, ok := v.(codec.FieldUnmarshaler); ok {
 		for i := 0; dec.dec.More(); i++ {
 			name, err := dec.stringToken()
 			if err != nil {
 				return err
 			}
 			once := &onceDecoder{Decoder: dec}
-			err = d.DecodeField(once, name)
+			err = d.UnmarshalField(once, name)
 			if err != nil {
 				return err
 			}
@@ -117,10 +117,10 @@ func (dec *Decoder) decodeObject(v any) error {
 // decodeArray decodes a JSON array into v.
 // It expects that the initial [ token has already been decoded.
 func (dec *Decoder) decodeArray(v any) error {
-	if d, ok := v.(codec.ElementDecoder); ok {
+	if d, ok := v.(codec.SeqUnmarshaler); ok {
 		for i := 0; dec.dec.More(); i++ {
 			once := &onceDecoder{Decoder: dec}
-			err := d.DecodeElement(once, i)
+			err := d.UnmarshalSeq(once, i)
 			if err != nil {
 				return err
 			}

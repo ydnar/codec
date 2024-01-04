@@ -30,50 +30,37 @@ type Encoder interface {
 	Encode(v any) error
 }
 
-func EncodeStruct[T any](enc Encoder, v T) error {
-	return nil
+type EncoderFunc func(v any) error
+
+func (f EncoderFunc) Encode(v any) error {
+	return f(v)
 }
 
+type ArrayEncoder interface {
+	EncodeArray(int) Encoder
+}
+
+type SliceEncoder interface {
+	EncodeSlice() Encoder
+}
+
+// StructEncoder is the interface implemented by Encoders that can encode a struct.
 type StructEncoder interface {
+	EncodeStruct() FieldEncoder
+}
+
+// FieldEncoder is the common interface implemented by a field encoder for a specific serialization format.
+// A FieldEncoder is used to encode structs, or string-keyed maps.
+type FieldEncoder interface {
 	Encode(name string, v any) error
 }
 
-func EncodeSeq[T any](enc Encoder, v T) error {
-	return nil
-}
-
-type SeqEncoder[T any] interface {
-	Encode(v T) error
-}
-
-func EncodeMap[M ~map[K]V | any, K comparable, V any](enc Encoder, v M) error {
-	return nil
-}
-
-type MapMarshaler[K comparable, V any] interface {
-	MarshalMap(enc MapEncoder[K, V]) error
-}
-
-type MapEncoder[K comparable, V any] interface {
-	Encode(k K, v V) error
-}
-
-type FieldEncoder interface {
-	EncodeField(name string, v any) error
-}
-
-type FieldsMarshaler interface {
-	MarshalFields(enc FieldEncoder) error
-}
-
-type ElementsMarshaler interface {
-	MarshalElements(enc Encoder) error
-}
-
+// TODO: document Marshaler
 type Marshaler interface {
 	Marshal(Encoder) error
 }
 
+// TODO: document Unmarshaler
 type Unmarshaler interface {
 	Unmarshal(Decoder) error
 }
@@ -117,32 +104,14 @@ type TextAppender interface {
 	AppendText([]byte) error
 }
 
-// ElementDecoder is the interface implemented by types that can decode
+// SeqUnmarshaler is the interface implemented by types that can unmarshal
 // indexed elements, such as a slice, arrays, or maps.
-type ElementDecoder interface {
-	DecodeElement(Decoder, int) error
-}
-
-type ElementUnmarshaler interface {
-	UnmarshalElement(Decoder, int) error
-}
-
-// FieldDecoder is the interface implemented by types that can decode
-// fields or attributes, such as structs or string-keyed maps.
-type FieldDecoder interface {
-	DecodeField(Decoder, string) error
+type SeqUnmarshaler interface {
+	UnmarshalSeq(Decoder, int) error
 }
 
 // FieldUnmarshaler is the interface implemented by types that can
 // unmarshal fields or attributes, such as structs or string-keyed maps.
 type FieldUnmarshaler interface {
-	UnmarshalField(Decoder, string) error
-}
-
-type FieldUnmarshaler2[K Key] interface {
-	UnmarshalField(dec Decoder, key K) error
-}
-
-type Key interface {
-	Scalar | string
+	UnmarshalField(dec Decoder, name string) error
 }

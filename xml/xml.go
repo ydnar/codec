@@ -16,8 +16,8 @@ type AttrDecoder interface {
 	DecodeXMLAttr(name Name, value string) error
 }
 
-type ElementDecoder interface {
-	DecodeXMLElement(dec codec.Decoder, name Name) error
+type ElementUnmarshaler interface {
+	UnmarshalXMLElement(dec codec.Decoder, name Name) error
 }
 
 // Document represents an XML document.
@@ -29,7 +29,7 @@ type Document struct {
 	Root any
 }
 
-func (doc *Document) DecodeXMLElement(dec codec.Decoder, name Name) error {
+func (doc *Document) UnmarshalXMLElement(dec codec.Decoder, name Name) error {
 	if doc.Name != (Name{}) {
 		return ErrMultipleRootNodes
 	}
