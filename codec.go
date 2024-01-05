@@ -36,6 +36,29 @@ func (f EncoderFunc) Encode(v any) error {
 	return f(v)
 }
 
+type NilEncoder interface {
+	EncodeNil() error
+}
+
+type BoolEncoder interface {
+	EncodeBool(bool) error
+}
+type Int64Encoder interface {
+	EncodeInt64(int64) error
+}
+
+type Uint64Encoder interface {
+	EncodeUint64(uint64) error
+}
+
+type Float64Encoder interface {
+	EncodeFloat64(float64) error
+}
+
+type Complex128Encoder interface {
+	EncodeComplex128(complex128) error
+}
+
 type ArrayEncoder interface {
 	EncodeArray(int) Encoder
 }
@@ -63,6 +86,14 @@ type Marshaler interface {
 // TODO: document Unmarshaler
 type Unmarshaler interface {
 	Unmarshal(Decoder) error
+}
+
+type Encodable interface {
+	Encode(Encoder) error
+}
+
+type Decodable interface {
+	Decode(Decoder) error
 }
 
 // ScalarMarshaler is the interface implemented by types that can marshal

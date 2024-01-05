@@ -18,20 +18,35 @@ func NewEncoder(w io.Writer) *Encoder {
 }
 
 func (enc *Encoder) Encode(v any) error {
-	switch v := v.(type) {
-	case nil:
-		return nil
-	case codec.Marshaler:
-		return v.Marshal(enc)
-	}
+	return codec.Encode(enc, v)
+}
+
+func (enc *Encoder) EncodeBool(b bool) error {
+	// TODO
 	return nil
 }
 
-// TODO
-func (enc *Encoder) EncodeName(name string) (codec.Encoder, error) {
-	return nil, nil
+func (enc *Encoder) EncodeInt64(i int64) error {
+	// TODO
+	return nil
 }
 
-func (enc *Encoder) EncodeSequence() (codec.Encoder, error) {
-	return nil, nil
+func (enc *Encoder) EncodeUint64(i uint64) error {
+	// TODO
+	return nil
+}
+
+func (enc *Encoder) EncodeFloat64(f float64) error {
+	// TODO
+	return nil
+}
+
+func (enc *Encoder) EncodeString(s string) error {
+	// TODO
+	return nil
+}
+
+func (enc *Encoder) EncodeText(text []byte) error {
+	// TODO
+	return nil
 }
