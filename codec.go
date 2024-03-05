@@ -9,12 +9,9 @@ type Resolver interface {
 	ResolveCodec(v any) Codec
 }
 
-// Resolvers is a slice of [Resolver] values. It also implements the [Resolver] interface.
-type Resolvers []Resolver
-
-// ResolveCodec walks the slice of Resolvers, returning the first non-nil value or an error.
-func (rs Resolvers) ResolveCodec(v any) Codec {
-	for _, r := range rs {
+// Resolve tries to resolve v with resolvers, returning the first non-nil value received.
+func Resolve(v any, resolvers ...Resolver) Codec {
+	for _, r := range resolvers {
 		c := r.ResolveCodec(v)
 		if c != nil {
 			return c
@@ -28,14 +25,27 @@ type Decoder interface {
 	Decode(v any) error
 }
 
-// NilDecoder is the interface implemented by types that can decode from nil.
-type NilDecoder interface {
-	DecodeNil() error
+// ScalarMarshaler is the interface implemented by types that can marshal
+// to a [Scalar] value. See https://github.com/golang/go/issues/56235 for more information.
+type ScalarMarshaler[T Scalar] interface {
+	MarshalScalar() (T, error)
 }
 
-// BoolDecoder is the interface implemented by types that can decode from a bool.
-type BoolDecoder interface {
-	DecodeBool(bool) error
+// ScalarMarshaler is the interface implemented by types that can unmarshal
+// from a [Scalar] value. See https://github.com/golang/go/issues/56235 for more information.
+type ScalarUnmarshaler[T Scalar] interface {
+	UnmarshalScalar(T) error
+}
+
+// Scalar is the set of types supported by [ScalarMarshaler] and [ScalarUnmarshaler].
+// See https://github.com/golang/go/issues/56235 for more information.
+type Scalar interface {
+	bool | int64 | uint64 | float64 | complex128
+}
+
+// NilUnmarshaler is the interface implemented by types that can unmarshal from nil.
+type NilUnmarshaler interface {
+	UnmarshalNil() error
 }
 
 // BytesDecoder is the interface implemented by types that can decode from a byte slice.
@@ -44,31 +54,24 @@ type BytesDecoder interface {
 	DecodeBytes([]byte) error
 }
 
-// StringDecoder is the interface implemented by types that can decode from a string.
-type StringDecoder interface {
-	DecodeString(string) error
+// StringUnmarshaler is the interface implemented by types that can unmarshal from a string.
+type StringUnmarshaler interface {
+	UnmarshalString(string) error
 }
 
-// IntDecoder is the interface implemented by types that can decode
-// from an integer value. See [Integer] for the list of supported types.
-type IntDecoder[T Integer] interface {
-	DecodeInt(T) error
-}
-
-// FloatDecoder is the interface implemented by types that can decode
-// from a floating-point value. See [Float] for the list of supported types.
-type FloatDecoder[T Float] interface {
-	DecodeFloat(T) error
-}
-
-// FieldDecoder is the interface implemented by types that can decode
-// fields, such as structs or maps.
-type FieldDecoder interface {
-	DecodeField(dec Decoder, name string) error
+// TextAppender is the interface implemented by types that can append text data.
+type TextAppender interface {
+	AppendText([]byte) error
 }
 
 // ElementDecoder is the interface implemented by types that can decode
-// 0-indexed elements, such as a slice or an array.
+// indexed elements, such as a slice, arrays, or maps.
 type ElementDecoder interface {
-	DecodeElement(dec Decoder, i int) error
+	DecodeElement(Decoder, int) error
+}
+
+// FieldDecoder is the interface implemented by types that can decode
+// fields or attributes, such as structs or string-keyed maps.
+type FieldDecoder interface {
+	DecodeField(Decoder, string) error
 }
