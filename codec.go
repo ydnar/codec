@@ -30,10 +30,37 @@ type Encoder interface {
 	Encode(v any) error
 }
 
-type EncoderFunc func(v any) error
+type FullEncoder interface {
+	Encoder
 
-func (f EncoderFunc) Encode(v any) error {
-	return f(v)
+	EncodeNil() error
+
+	EncodeBool(bool) error
+	EncodeRune(rune) error
+	EncodeInt(int) error
+	EncodeUint(uint) error
+	EncodeInt8(int8) error
+	EncodeUint8(uint8) error
+	EncodeInt16(int16) error
+	EncodeUint16(uint16) error
+	EncodeInt32(int32) error
+	EncodeUint32(uint32) error
+	EncodeInt64(int64) error
+	EncodeUint64(uint64) error
+	EncodeFloat32(float32) error
+	EncodeFloat64(float64) error
+	EncodeComplex64(complex64) error
+	EncodeComplex128(complex128) error
+
+	EncodeString(string) error
+	EncodeText([]byte) error
+	EncodeBinary([]byte) error
+
+	EncodeStruct(name string) FieldEncoder
+	EncodeSlice(size int) Encoder
+	EncodeArray(size int) Encoder
+	// TODO
+	// EncodeMap(size int) KVEncoder
 }
 
 type NilEncoder interface {
@@ -139,6 +166,10 @@ type TextAppender interface {
 // indexed elements, such as a slice, arrays, or maps.
 type SeqUnmarshaler interface {
 	UnmarshalSeq(Decoder, int) error
+}
+
+type StructMarshaler interface {
+	MarshalStruct(FieldEncoder) error
 }
 
 // FieldUnmarshaler is the interface implemented by types that can

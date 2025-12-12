@@ -1,9 +1,16 @@
 package json
 
-import "github.com/ydnar/codec"
+import (
+	"github.com/ydnar/codec"
+)
 
 type AddressBook struct {
 	Addresses []Address
+}
+
+func (b *AddressBook) Marshal(enc codec.Encoder) error {
+	e := codec.EncodeStruct(enc)
+	return e.Encode("addresses", codec.Slice(&b.Addresses))
 }
 
 func (b *AddressBook) MarshalStruct(enc codec.FieldEncoder) error {

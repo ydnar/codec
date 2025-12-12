@@ -8,6 +8,10 @@ func Encode(enc Encoder, v any) error {
 	case Marshaler:
 		return v.Marshal(enc)
 
+	case StructMarshaler:
+		s := EncodeStruct(enc)
+		return v.MarshalStruct(s)
+
 	case ScalarMarshaler[bool]:
 		b, err := v.MarshalScalar()
 		if err != nil {
